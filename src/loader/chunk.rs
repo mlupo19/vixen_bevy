@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
-use bevy::{math::IVec3, utils::HashMap};
+use bevy::utils::HashMap;
 use ndarray::Array3;
 
-use super::MeshData;
+use super::{MeshData, ChunkCoord};
 pub const CHUNK_SIZE: (usize, usize, usize) = (32, 32, 32);
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -66,13 +64,13 @@ impl Faces {
 }
 
 pub struct Chunk {
-    coord: IVec3,
-    block_data: Option<Box<ndarray::Array3<Block>>>,
+    coord: ChunkCoord,
+    block_data: Option<ndarray::Array3<Block>>,
     needs_update: bool,
 }
 
 impl Chunk {
-    pub fn empty(coord: IVec3) -> Chunk {
+    pub fn empty(coord: ChunkCoord) -> Chunk {
         Chunk {
             coord,
             block_data: None,
@@ -80,7 +78,7 @@ impl Chunk {
         }
     }
 
-    pub fn new(coord: IVec3) -> Chunk {
+    pub fn new(coord: ChunkCoord) -> Chunk {
         Chunk {
             coord,
             block_data: None,
@@ -88,7 +86,7 @@ impl Chunk {
         }
     }
 
-    pub fn from_data(coord: IVec3, data: Box<Array3<Block>>) -> Chunk {
+    pub fn from_data(coord: ChunkCoord, data: Array3<Block>) -> Chunk {
         Chunk {
             coord,
             block_data: Some(data),
@@ -97,7 +95,7 @@ impl Chunk {
     }
 
     fn add_face(
-        &self,
+        block_data: &Array3<Block>,
         vertices: &mut Vec<[f32;3]>,
         normals: &mut Vec<[f32;3]>,
         texture_coords: &mut Vec<[f32;2]>,
@@ -117,7 +115,7 @@ impl Chunk {
             vertices.push([point_in_chunk_space.0 as f32, point_in_chunk_space.1 as f32, point_in_chunk_space.2 as f32]);
             normals.push([face.normal.0 as f32, face.normal.1 as f32, face.normal.2 as f32]);
             let face_tex_coords = texture_map_info
-                .get(&self.get_block((i, j, k)).unwrap().id)
+                .get(&block_data.get((i, j, k)).unwrap().id)
                 .unwrap()[face.face_id as usize];
             texture_coords.push([face_tex_coords[c][0],face_tex_coords[c][1]]);
         }
@@ -127,9 +125,9 @@ impl Chunk {
         }
     }
 
-    pub fn gen_mesh<'a>(
-        &self,
-        neighbors: [&'a Chunk;6],
+    pub fn gen_mesh(
+        block_data: &Array3<Block>,
+        neighbors: [Option<&Array3<Block>>;6],
         texture_map_info: &HashMap<u16, [[[f32; 2]; 4]; 6]>,
     ) -> MeshData {
         let mut vertices = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2);
@@ -141,15 +139,12 @@ impl Chunk {
             for j in 0..CHUNK_SIZE.1 {
                 for k in 0..CHUNK_SIZE.2 {
                     // Check if block or air
-                    if self.block_data.as_ref().unwrap().get((i, j, k)).unwrap().id != 0 {
+                    if block_data.get((i, j, k)).unwrap().id != 0 {
                         // Check adjacent blocks
 
                         // Add right face to mesh
                         if i == CHUNK_SIZE.0 - 1
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i + 1, j, k))
                                 .unwrap()
                                 .id
@@ -157,10 +152,9 @@ impl Chunk {
                         {
                             // Check neighbor chunk if block is on edge
                             if i == CHUNK_SIZE.0 - 1 {
-                                let neighbor = neighbors[0];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[0];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((0, j, k))
@@ -168,45 +162,43 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::RIGHT,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::RIGHT,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
 
                         // Add left face to mesh
                         if i == 0
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i - 1, j, k))
                                 .unwrap()
                                 .id
                                 == 0
                         {
                             if i == 0 {
-                                let neighbor = neighbors[1];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[1];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((CHUNK_SIZE.0 - 1, j, k))
@@ -214,45 +206,43 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::LEFT,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::LEFT,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
 
                         // Add bottom face to mesh
                         if j == 0
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i, j - 1, k))
                                 .unwrap()
                                 .id
                                 == 0
                         {
                             if j == 0 {
-                                let neighbor = neighbors[2];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[2];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((i, CHUNK_SIZE.1 - 1, k))
@@ -260,45 +250,43 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BOTTOM,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BOTTOM,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
 
                         // Add top face to mesh
                         if j == CHUNK_SIZE.1 - 1
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i, j + 1, k))
                                 .unwrap()
                                 .id
                                 == 0
                         {
                             if j == CHUNK_SIZE.1 - 1 {
-                                let neighbor = neighbors[3];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[3];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((i, 0, k))
@@ -306,45 +294,43 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::TOP,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::TOP,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
 
                         // Add front face to mesh
                         if k == CHUNK_SIZE.2 - 1
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i, j, k + 1))
                                 .unwrap()
                                 .id
                                 == 0
                         {
                             if k == CHUNK_SIZE.2 - 1 {
-                                let neighbor = neighbors[4];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[4];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((i, j, 0))
@@ -352,45 +338,43 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::FRONT,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::FRONT,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
 
                         // Add back face to mesh
                         if k == 0
-                            || self
-                                .block_data
-                                .as_ref()
-                                .unwrap()
+                            || block_data
                                 .get((i, j, k - 1))
                                 .unwrap()
                                 .id
                                 == 0
                         {
                             if k == 0 {
-                                let neighbor = neighbors[5];
-                                if neighbor.block_data.is_none()
+                                let neighbor = &neighbors[5];
+                                if neighbor.is_none()
                                     || neighbor
-                                        .block_data
                                         .as_ref()
                                         .unwrap()
                                         .get((i, j, CHUNK_SIZE.2 - 1))
@@ -398,25 +382,27 @@ impl Chunk {
                                         .id
                                         == 0
                                 {
-                                    self.add_face(
+                                    Chunk::add_face(
+                                        &block_data,
                                         &mut vertices,
                                         &mut normals,
                                         &mut texture_coords,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BACK,
-                                        texture_map_info,
+                                        &texture_map_info,
                                     );
                                 }
                             } else {
-                                self.add_face(
+                                Chunk::add_face(
+                                    &block_data,
                                     &mut vertices,
                                     &mut normals,
                                     &mut texture_coords,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BACK,
-                                    texture_map_info,
+                                    &texture_map_info,
                                 );
                             }
                         }
@@ -433,7 +419,7 @@ impl Chunk {
 
         match self.block_data {
             None => {
-                self.block_data = Some(Box::new(ndarray::Array3::default(CHUNK_SIZE)));
+                self.block_data = Some(ndarray::Array3::default(CHUNK_SIZE));
                 needs_update = true;
             },
             Some(_) => {
@@ -460,11 +446,11 @@ impl Chunk {
     //     self.position
     // }
 
-    pub fn get_data_mut(&mut self) -> &mut Option<Box<ndarray::Array3<Block>>> {
+    pub fn get_data_mut(&mut self) -> &mut Option<ndarray::Array3<Block>> {
         &mut self.block_data
     }
 
-    pub fn get_data(&self) -> &Option<Box<ndarray::Array3<Block>>> {
+    pub fn get_data(&self) -> &Option<ndarray::Array3<Block>> {
         &self.block_data
     }
 

@@ -1,5 +1,5 @@
 use bevy::utils::HashMap;
-use std::fs::File;
+use std::{fs::File, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 pub struct TextureMapInfo {
