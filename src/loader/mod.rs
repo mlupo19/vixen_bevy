@@ -3,7 +3,7 @@ mod chunk;
 mod generator;
 mod texture;
 
-use bevy::{prelude::*, utils::{HashMap, HashSet}, tasks::{AsyncComputeTaskPool, Task}, math::ivec3, render::render_resource::FilterMode, ecs::event::Events};
+use bevy::{prelude::*, utils::{HashMap, HashSet}, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::render_resource::FilterMode, ecs::event::Events};
 use chunk::*;
 use futures_lite::future;
 
@@ -36,16 +36,19 @@ impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup);
         app.add_system_to_stage(CoreStage::PreUpdate, scan_chunks);
+        app.add_system_to_stage(CoreStage::PreUpdate, queue_mesh_rebuild);
         app.add_system_to_stage(CoreStage::PreUpdate, build_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, build_meshes);
         app.add_stage_before(CoreStage::PreUpdate, "Unload", SystemStage::parallel());
         app.add_system_to_stage("Unload", unload_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, unload_meshes);
         app.add_system(when_texture_loads);
-        app.insert_resource(HashMap::<IVec3, Chunk>::new());
+        app.insert_resource(HashMap::<ChunkCoord, Chunk>::new());
+        app.insert_resource(HashMap::<ChunkCoord, Handle<Mesh>>::new());
         app.insert_resource(NeedsMeshBuild(HashSet::new()));
         app.insert_resource(NeedsChunkBuild(HashSet::new()));
         app.insert_resource(TerrainGenerator::new(0));
+
     }
 }
 
@@ -62,7 +65,7 @@ fn setup(
     });
 
     let render_distance = RenderDistance::default();
-    commands.spawn().insert(ChunkScanner::new(render_distance.get() + 1, ivec3(0,0,0)));
+    commands.spawn().insert(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
     commands.insert_resource(render_distance);
     commands.insert_resource(material_handle);
     commands.insert_resource(texture::load_texture_map_info((512,512)));
@@ -108,7 +111,7 @@ fn scan_chunks(
 }
 
 fn build_chunks(
-    mut chunk_map: ResMut<HashMap<IVec3, Chunk>>,
+    mut chunk_map: ResMut<HashMap<ChunkCoord, Chunk>>,
     mut tasks: Query<(Entity, &mut ChunkBuildTask)>,
     mut to_build: ResMut<NeedsMeshBuild>,
     mut needs_build: ResMut<NeedsChunkBuild>,
@@ -124,46 +127,70 @@ fn build_chunks(
     });
 }
 
+fn queue_mesh_rebuild(
+    chunk_map: Res<HashMap<ChunkCoord, Chunk>>,
+    mesh_map: Res<HashMap<ChunkCoord, Handle<Mesh>>>,
+    scanner: Query<&ChunkScanner>,
+    mut to_build: ResMut<NeedsMeshBuild>,
+) {
+    for (coord, chunk) in chunk_map.iter() {
+        if chunk.needs_update() || (scanner.single().should_load_mesh(coord) && !mesh_map.contains_key(coord)) {
+            to_build.0.insert(*coord);
+        }
+    }
+}
+
 fn build_meshes(
     pool: Res<AsyncComputeTaskPool>,
-    chunk_map: Res<HashMap<IVec3, Chunk>>,
     texture_map_info: Res<TextureMapInfo>,
     material_handle: Res<Handle<StandardMaterial>>,
+    scanner: Query<&ChunkScanner>,
+    mut chunk_map: ResMut<HashMap<ChunkCoord, Chunk>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut mesh_map: ResMut<HashMap<ChunkCoord, Handle<Mesh>>>,
     mut commands: Commands,
     mut to_build: ResMut<NeedsMeshBuild>,
 ) {
     let task = pool.scope(|scope| {
-        for coord in &to_build.0 {
-            let chunk = chunk_map.get(&coord).unwrap();
-            if !chunk.is_empty() {
-                if let Some(neighbors) = get_neighbors(&chunk_map, *coord) {
-                    let info = &texture_map_info.info;
-                    let data = chunk.get_data().as_ref().unwrap();
-                    let coord = coord.clone();
-                    scope.spawn(async move {
-                        let (vertices, normals, texture_coords, indices) = Chunk::gen_mesh(&data, neighbors, info);
-                        let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList);
-                        mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, texture_coords);
+        to_build.0.drain_filter(|coord| {
+            if let Some(chunk) = chunk_map.get(&coord) {
+                if !chunk.is_empty() && scanner.single().should_load_mesh(coord) {
+                    if let Some(neighbors) = get_neighbors(&chunk_map, *coord) {
+                        let info = &texture_map_info.info;
+                        let data = chunk.get_data().as_ref().unwrap();
+                        let coord = coord.clone();
+                        scope.spawn(async move {
+                            let (vertices, normals, texture_coords, indices) = Chunk::gen_mesh(&data, neighbors, info);
+                            let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList);
+                            mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
+                            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+                            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+                            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, texture_coords);
 
-                        (coord, mesh)
-                    });
+                            (coord, mesh)
+                        });
+
+                        return true;
+                    }
                 }
             }
-        }
+            false
+        });
     });
 
     for (coord, mesh) in task {
-        to_build.0.remove(&coord);
+        if let Some(mesh_handle) = mesh_map.get(&coord) {
+            meshes.remove(mesh_handle.id);
+        }
+        let mesh_handle = meshes.add(mesh);
+        mesh_map.insert(coord, mesh_handle.clone());
         commands.spawn_bundle(MaterialMeshBundle {
-            mesh: meshes.add(mesh),
+            mesh: mesh_handle,
             material: material_handle.as_ref().clone(),
             transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
             ..Default::default()
         });
+        chunk_map.get_mut(&coord).unwrap().set_updated();
     }
 }
 
@@ -171,27 +198,24 @@ fn unload_chunks(
     mut chunk_map: ResMut<HashMap<IVec3, Chunk>>,
     scanner: Query<&ChunkScanner>,
 ) {
-    let mut to_remove = vec![];
-    for (coord, _) in chunk_map.iter() {
-       scanner.for_each(|scanner| {
-            if scanner.should_unload_chunk(coord) {
-                to_remove.push(coord.clone());
-            }
-        });
-    }
-
-    for coord in to_remove {
-        chunk_map.remove(&coord);
-    }
+    chunk_map.drain_filter(|coord, _chunk| {
+        scanner.single().should_unload_chunk(coord)
+    });
 }
 
 fn unload_meshes(
     mut meshes: ResMut<Assets<Mesh>>,
+    mut mesh_map: ResMut<HashMap<ChunkCoord, Handle<Mesh>>>,
     scanner: Query<&ChunkScanner>,
 ) {
+    mesh_map.drain_filter(|coord, _mesh| {
+        !scanner.single().should_load_mesh(coord)
+    }).into_iter().for_each(|(_, mesh)| {
+        meshes.remove(mesh.id);
+    });
 }
 
-fn get_neighbors<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: IVec3) -> Option<[Option<&'a Array3<Block>>;6]> {
+fn get_neighbors<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: IVec3) -> Option<[Option<&'a Box<Array3<Block>>>;6]> {
     Some([
         match chunk_map.get(&(ivec3(1,0,0) + coord)) {
             None => return None,
@@ -259,5 +283,50 @@ fn when_texture_loads(
             AssetEvent::Modified { handle: _ } => (),
             AssetEvent::Removed { handle: _ } => (),
         }
+    }
+}
+
+fn to_chunk_coord(world_coord: &Vec3) -> ChunkCoord {
+    ivec3((world_coord.x / CHUNK_SIZE.0 as f32).floor() as i32, (world_coord.y / CHUNK_SIZE.1 as f32).floor() as i32, (world_coord.z / CHUNK_SIZE.2 as f32).floor() as i32)
+}
+
+fn to_world_coord(chunk_coord: &ChunkCoord) -> Vec3 {
+    vec3((chunk_coord.x * CHUNK_SIZE.0 as i32) as f32, (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32, (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32)
+}
+
+pub fn get_block<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: &BlockCoord) -> Option<Block> {
+    let (x,y,z) = (coord.x,coord.y,coord.z);
+    let chunk_coord = ivec3(
+        (x as f32 / CHUNK_SIZE.0 as f32).floor() as i32,
+        (y as f32 / CHUNK_SIZE.1 as f32).floor() as i32,
+        (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
+    );
+    match chunk_map.get(&chunk_coord) {
+        None => None,
+        Some(chunk) => chunk.get_block((
+            (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
+            (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
+            (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
+        )),
+    }
+}
+
+pub fn set_block<'a>(chunk_map: &'a mut HashMap<IVec3, Chunk>, coord: &BlockCoord, block: Block) -> Result<(), ()> {
+    let (x,y,z) = (coord.x,coord.y,coord.z);
+    let chunk_coord = ivec3(
+        (x as f32 / CHUNK_SIZE.0 as f32).floor() as i32,
+        (y as f32 / CHUNK_SIZE.1 as f32).floor() as i32,
+        (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
+    );
+    match chunk_map.get_mut(&chunk_coord) {
+        None => Err(()),
+        Some(chunk) => {
+            chunk.set_block((
+                (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
+                (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
+                (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
+            ), block);
+            Ok(())
+        },
     }
 }

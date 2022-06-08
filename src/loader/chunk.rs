@@ -65,7 +65,7 @@ impl Faces {
 
 pub struct Chunk {
     coord: ChunkCoord,
-    block_data: Option<ndarray::Array3<Block>>,
+    block_data: Option<Box<ndarray::Array3<Block>>>,
     needs_update: bool,
 }
 
@@ -89,7 +89,7 @@ impl Chunk {
     pub fn from_data(coord: ChunkCoord, data: Array3<Block>) -> Chunk {
         Chunk {
             coord,
-            block_data: Some(data),
+            block_data: Some(Box::new(data)),
             needs_update: true,
         }
     }
@@ -127,7 +127,7 @@ impl Chunk {
 
     pub fn gen_mesh(
         block_data: &Array3<Block>,
-        neighbors: [Option<&Array3<Block>>;6],
+        neighbors: [Option<&Box<Array3<Block>>>;6],
         texture_map_info: &HashMap<u16, [[[f32; 2]; 4]; 6]>,
     ) -> MeshData {
         let mut vertices = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2);
@@ -419,7 +419,7 @@ impl Chunk {
 
         match self.block_data {
             None => {
-                self.block_data = Some(ndarray::Array3::default(CHUNK_SIZE));
+                self.block_data = Some(Box::new(ndarray::Array3::default(CHUNK_SIZE)));
                 needs_update = true;
             },
             Some(_) => {
@@ -446,11 +446,11 @@ impl Chunk {
     //     self.position
     // }
 
-    pub fn get_data_mut(&mut self) -> &mut Option<ndarray::Array3<Block>> {
+    pub fn get_data_mut(&mut self) -> &mut Option<Box<ndarray::Array3<Block>>> {
         &mut self.block_data
     }
 
-    pub fn get_data(&self) -> &Option<ndarray::Array3<Block>> {
+    pub fn get_data(&self) -> &Option<Box<ndarray::Array3<Block>>> {
         &self.block_data
     }
 

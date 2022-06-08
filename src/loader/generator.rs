@@ -50,10 +50,10 @@ impl TerrainGenerator {
             for j in 0..CHUNK_SIZE.1 {
                 for k in 0..CHUNK_SIZE.2 {
                     if heights[(i, k)] > (j as i32 + y * CHUNK_SIZE.1 as i32) {
-                        let id = if heights[(i,k)] == (j as i32 + y * CHUNK_SIZE.1 as i32) + 1 {
-                            1
-                        } else {
-                            2
+                        let id = match j as i32 + y * CHUNK_SIZE.1 as i32 {
+                            height if heights[(i,k)] - height == 1 => 1,
+                            height if heights[(i,k)] - height < 5 => 2,
+                            _ => 3
                         };
                         out.set_block((i, j, k), Block::new(id, 5.0));
                     }
