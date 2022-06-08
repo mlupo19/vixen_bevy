@@ -2,6 +2,7 @@ mod scanner;
 mod chunk;
 mod generator;
 mod texture;
+mod worldgen;
 
 use bevy::{prelude::*, utils::{HashMap, HashSet}, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::render_resource::FilterMode, ecs::event::Events};
 use chunk::*;
