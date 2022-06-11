@@ -10,6 +10,9 @@ use futures_lite::future;
 
 use ndarray::Array3;
 pub use scanner::ChunkScanner;
+pub use worldgen::Worldgen;
+pub use worldgen::ChunkMap;
+pub use chunk::*;
 
 use self::{generator::TerrainGenerator, texture::TextureMapInfo};
 
@@ -17,10 +20,10 @@ pub type ChunkCoord = IVec3;
 pub type BlockCoord = IVec3;
 
 #[derive(Component)]
-struct ChunkBuildTask(pub Task<(ChunkCoord, Chunk)>);
+pub struct ChunkBuildTask(pub Task<(ChunkCoord, Chunk)>);
 
 #[derive(Component)]
-struct MeshBuildTask(pub Task<MeshDataWithCoord>);
+pub struct MeshBuildTask(pub Task<MeshDataWithCoord>);
 
 #[derive(Component)]
 struct NeedsMeshBuild(pub HashSet<ChunkCoord>);
@@ -44,12 +47,7 @@ impl Plugin for WorldLoaderPlugin {
         app.add_system_to_stage("Unload", unload_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, unload_meshes);
         app.add_system(when_texture_loads);
-        app.insert_resource(HashMap::<ChunkCoord, Chunk>::new());
-        app.insert_resource(HashMap::<ChunkCoord, Handle<Mesh>>::new());
-        app.insert_resource(NeedsMeshBuild(HashSet::new()));
-        app.insert_resource(NeedsChunkBuild(HashSet::new()));
-        app.insert_resource(TerrainGenerator::new(0));
-
+        app.insert_resource(Worldgen::new(texture::load_texture_map_info((512,512)), 0));
     }
 }
 
@@ -69,7 +67,6 @@ fn setup(
     commands.spawn().insert(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
     commands.insert_resource(render_distance);
     commands.insert_resource(material_handle);
-    commands.insert_resource(texture::load_texture_map_info((512,512)));
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);
     rot = rot.mul_quat(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_6));
@@ -91,129 +88,58 @@ fn setup(
 
 fn scan_chunks(
     scanner: Query<&ChunkScanner>,
-    chunk_map: Res<HashMap<ChunkCoord, Chunk>>,
     pool: Res<AsyncComputeTaskPool>,
-    generator: Res<TerrainGenerator>,
-    mut needs_build: ResMut<NeedsChunkBuild>,
-    mut commands: Commands,
+    commands: Commands,
+    mut worldgen: ResMut<Worldgen>,
 ) {
-    for scanner in scanner.iter() {
-        for chunk_coord in scanner.into_iter() {
-            if !chunk_map.contains_key(&chunk_coord) && !needs_build.0.contains(&chunk_coord) {
-                needs_build.0.insert(chunk_coord.clone());
-                let generator = generator.clone();
-                let task = pool.spawn(async move {
-                    generator.gen(chunk_coord)
-                });
-                commands.spawn().insert(ChunkBuildTask(task));
-            }
-        }
-    }
+    worldgen.scan_chunks(scanner, pool, commands);
 }
 
 fn build_chunks(
-    mut chunk_map: ResMut<HashMap<ChunkCoord, Chunk>>,
     mut tasks: Query<(Entity, &mut ChunkBuildTask)>,
-    mut to_build: ResMut<NeedsMeshBuild>,
-    mut needs_build: ResMut<NeedsChunkBuild>,
     mut commands: Commands,
+    mut worldgen: ResMut<Worldgen>,
 ) {
     tasks.for_each_mut(|(entity, mut task)| {
         if let Some((coord, chunk)) = future::block_on(future::poll_once(&mut task.0)) {
-            chunk_map.insert(coord.clone(), chunk);
+            worldgen.build_chunk(coord, chunk);
             commands.entity(entity).remove::<ChunkBuildTask>();
-            to_build.0.insert(coord);
-            needs_build.0.remove(&coord);
         }
     });
+    
 }
 
 fn queue_mesh_rebuild(
-    chunk_map: Res<HashMap<ChunkCoord, Chunk>>,
-    mesh_map: Res<HashMap<ChunkCoord, Handle<Mesh>>>,
+    mut worldgen: ResMut<Worldgen>,
     scanner: Query<&ChunkScanner>,
-    mut to_build: ResMut<NeedsMeshBuild>,
 ) {
-    for (coord, chunk) in chunk_map.iter() {
-        if chunk.needs_update() || (scanner.single().should_load_mesh(coord) && !mesh_map.contains_key(coord)) {
-            to_build.0.insert(*coord);
-        }
-    }
+    worldgen.queue_mesh_rebuild(scanner);
 }
 
 fn build_meshes(
     pool: Res<AsyncComputeTaskPool>,
-    texture_map_info: Res<TextureMapInfo>,
     material_handle: Res<Handle<StandardMaterial>>,
     scanner: Query<&ChunkScanner>,
-    mut chunk_map: ResMut<HashMap<ChunkCoord, Chunk>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mesh_map: ResMut<HashMap<ChunkCoord, Handle<Mesh>>>,
-    mut commands: Commands,
-    mut to_build: ResMut<NeedsMeshBuild>,
+    meshes: ResMut<Assets<Mesh>>,
+    commands: Commands,
+    mut worldgen: ResMut<Worldgen>,
 ) {
-    let task = pool.scope(|scope| {
-        to_build.0.drain_filter(|coord| {
-            if let Some(chunk) = chunk_map.get(&coord) {
-                if !chunk.is_empty() && scanner.single().should_load_mesh(coord) {
-                    if let Some(neighbors) = get_neighbors(&chunk_map, *coord) {
-                        let info = &texture_map_info.info;
-                        let data = chunk.get_data().as_ref().unwrap();
-                        let coord = coord.clone();
-                        scope.spawn(async move {
-                            let (vertices, normals, texture_coords, indices) = Chunk::gen_mesh(&data, neighbors, info);
-                            let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList);
-                            mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
-                            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-                            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, texture_coords);
-
-                            (coord, mesh)
-                        });
-
-                        return true;
-                    }
-                }
-            }
-            false
-        });
-    });
-
-    for (coord, mesh) in task {
-        if let Some(mesh_handle) = mesh_map.get(&coord) {
-            meshes.remove(mesh_handle.id);
-        }
-        let mesh_handle = meshes.add(mesh);
-        mesh_map.insert(coord, mesh_handle.clone());
-        commands.spawn_bundle(MaterialMeshBundle {
-            mesh: mesh_handle,
-            material: material_handle.as_ref().clone(),
-            transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
-            ..Default::default()
-        });
-        chunk_map.get_mut(&coord).unwrap().set_updated();
-    }
+    worldgen.build_meshes(pool, material_handle, scanner, meshes, commands);
 }
 
 fn unload_chunks(
-    mut chunk_map: ResMut<HashMap<IVec3, Chunk>>,
+    mut worldgen: ResMut<Worldgen>,
     scanner: Query<&ChunkScanner>,
 ) {
-    chunk_map.drain_filter(|coord, _chunk| {
-        scanner.single().should_unload_chunk(coord)
-    });
+    worldgen.unload_chunks(scanner);
 }
 
 fn unload_meshes(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mesh_map: ResMut<HashMap<ChunkCoord, Handle<Mesh>>>,
     scanner: Query<&ChunkScanner>,
+    meshes: ResMut<Assets<Mesh>>,
+    mut worldgen: ResMut<Worldgen>,
 ) {
-    mesh_map.drain_filter(|coord, _mesh| {
-        !scanner.single().should_load_mesh(coord)
-    }).into_iter().for_each(|(_, mesh)| {
-        meshes.remove(mesh.id);
-    });
+    worldgen.unload_meshes(scanner, meshes);
 }
 
 fn get_neighbors<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: IVec3) -> Option<[Option<&'a Box<Array3<Block>>>;6]> {
@@ -250,7 +176,7 @@ struct RenderDistance(u32);
 
 impl Default for RenderDistance {
     fn default() -> Self {
-        Self(10)
+        Self(5)
     }
 }
 
@@ -293,41 +219,4 @@ fn to_chunk_coord(world_coord: &Vec3) -> ChunkCoord {
 
 fn to_world_coord(chunk_coord: &ChunkCoord) -> Vec3 {
     vec3((chunk_coord.x * CHUNK_SIZE.0 as i32) as f32, (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32, (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32)
-}
-
-pub fn get_block<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: &BlockCoord) -> Option<Block> {
-    let (x,y,z) = (coord.x,coord.y,coord.z);
-    let chunk_coord = ivec3(
-        (x as f32 / CHUNK_SIZE.0 as f32).floor() as i32,
-        (y as f32 / CHUNK_SIZE.1 as f32).floor() as i32,
-        (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
-    );
-    match chunk_map.get(&chunk_coord) {
-        None => None,
-        Some(chunk) => chunk.get_block((
-            (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
-            (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
-            (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
-        )),
-    }
-}
-
-pub fn set_block<'a>(chunk_map: &'a mut HashMap<IVec3, Chunk>, coord: &BlockCoord, block: Block) -> Result<(), ()> {
-    let (x,y,z) = (coord.x,coord.y,coord.z);
-    let chunk_coord = ivec3(
-        (x as f32 / CHUNK_SIZE.0 as f32).floor() as i32,
-        (y as f32 / CHUNK_SIZE.1 as f32).floor() as i32,
-        (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
-    );
-    match chunk_map.get_mut(&chunk_coord) {
-        None => Err(()),
-        Some(chunk) => {
-            chunk.set_block((
-                (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
-                (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
-                (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
-            ), block);
-            Ok(())
-        },
-    }
 }

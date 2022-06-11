@@ -1,54 +1,19 @@
-use bevy::{prelude::*, utils::Instant};
-use bevy_flycam::FlyCam;
+mod plugin;
 
-use crate::loader::ChunkScanner;
+use bevy::{utils::Instant, prelude::Component};
+use bevy::prelude::*;
+pub use plugin::PlayerPlugin;
 
-pub struct PlayerPlugin;
+use crate::loader::{BlockCoord, Worldgen};
+use crate::loader::Block;
 
-impl Plugin for PlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugin(bevy_flycam::PlayerPlugin);
-        app.add_system_to_stage(CoreStage::PreUpdate ,update_camera_pos);
-        app.add_startup_system(setup);
-        app.add_system(mining);
-        app.add_system(building);
-    }
-}
-
-fn setup(
-    mut cmds: Commands,
-) {
-    cmds.insert_resource(Miner::default());
-    cmds.insert_resource(Builder::default());
-}
-
-fn mining(
-    mut miner: ResMut<Miner>,
-    player: Query<&Player>
-) {
-
-}
-
-fn building(
-    mut builder: ResMut<Builder>
-) {
-
-}
-
-fn update_camera_pos(
-    mut scanner: Query<&mut ChunkScanner>,
-    query: Query<&Transform, With<FlyCam>>,
-) {
-    let translation = query.get_single().unwrap().translation.clone();
-    scanner.get_single_mut().unwrap().update(translation);
-}
+#[derive(Default)]
+pub struct Player;
 
 #[derive(Component)]
-struct Player;
-
 struct Miner {
     mining_progress: f32,
-    coord: [i32;3],
+    coord: IVec3,
     last_time: Instant,
 }
 
@@ -58,12 +23,29 @@ impl Default for Miner {
     }
 }
 
+#[derive(Component)]
 struct Builder(Instant);
 
 impl Miner {
-    pub fn reset_miner(&mut self, coord: [i32;3]) {
+    pub fn mine(&mut self, coord: &BlockCoord, delta: f32, speed: f32, worldgen: &mut Worldgen) {
+        if &self.coord != coord {
+            self.reset_miner(coord);
+        }
+        self.coord = *coord;
+        self.update();
+        let block = worldgen.get_block(coord).unwrap_or(Block::air());
+        let health = block.health;
+        self.mining_progress += delta * speed;
+        if health - self.mining_progress <= 0.0 && !block.is_air() {
+            worldgen.set_block(coord, Block::air());
+        } else {
+            println!("{} health left, ID: {}", health - self.mining_progress, block.id);
+        }
+    }
+
+    pub fn reset_miner(&mut self, coord: &BlockCoord) {
         self.mining_progress = 0.0;
-        self.coord = coord;
+        self.coord = *coord;
     }
 
     pub fn update(&mut self) {

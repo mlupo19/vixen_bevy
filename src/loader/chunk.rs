@@ -21,6 +21,10 @@ impl Block {
     pub fn air() -> Block {
         Block { id: 0, health: 0.0 }
     }
+
+    pub fn is_air(&self) -> bool {
+        self.id == 0
+    }
 }
 
 struct Faces;
