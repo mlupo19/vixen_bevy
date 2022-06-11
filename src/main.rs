@@ -23,6 +23,6 @@ fn init_settings(
     mut move_settings: ResMut<MovementSettings>,
     mut windows: ResMut<Windows>,
 ) {
-    move_settings.speed = 50.0;
+    move_settings.speed = 10.0;
     windows.get_primary_mut().unwrap().set_resolution(1920.0, 1080.0);
 }

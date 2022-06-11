@@ -142,41 +142,12 @@ fn unload_meshes(
     worldgen.unload_meshes(scanner, meshes);
 }
 
-fn get_neighbors<'a>(chunk_map: &'a HashMap<IVec3, Chunk>, coord: IVec3) -> Option<[Option<&'a Box<Array3<Block>>>;6]> {
-    Some([
-        match chunk_map.get(&(ivec3(1,0,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(-1,0,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,-1,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,1,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,0,1) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,0,-1) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-    ])
-}
-
 #[derive(Clone, Copy)]
 struct RenderDistance(u32);
 
 impl Default for RenderDistance {
     fn default() -> Self {
-        Self(5)
+        Self(12)
     }
 }
 

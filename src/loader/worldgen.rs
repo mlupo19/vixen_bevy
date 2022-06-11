@@ -68,7 +68,7 @@ impl Worldgen {
             self.needs_mesh_build.drain_filter(|coord| {
                 if let Some(chunk) = self.chunk_map.get(&coord) {
                     if !chunk.is_empty() && scanner.single().should_load_mesh(coord) {
-                        if let Some(neighbors) = get_neighbors(&self.chunk_map, *coord) {
+                        if let Some(neighbors) = get_neighbors_data(&self.chunk_map, *coord) {
                             let info = &self.texture_map_info.info;
                             let data = chunk.get_data().as_ref().unwrap();
                             let coord = coord.clone();
@@ -155,12 +155,50 @@ impl Worldgen {
         match self.chunk_map.get_mut(&chunk_coord) {
             None => (),
             Some(chunk) => {
-                chunk.set_block((
+                if chunk.set_block((
                     (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
                     (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
                     (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
-                ), block);
+                ), block) {
+                    self.update_neighbors(chunk_coord);
+                }
             },
         }
     }
+
+    fn update_neighbors(&mut self, coord: IVec3) {
+        let neighbors = [ivec3(1,0,0) + coord, ivec3(-1,0,0) + coord, ivec3(0,-1,0) + coord, ivec3(0,1,0) + coord, ivec3(0,0,1) + coord, ivec3(0,0,-1) + coord];
+        neighbors.into_iter().for_each(|coord| if let Some(chunk) = self.chunk_map.get_mut(&coord) {
+            chunk.request_update();
+        });
+    }
+}
+
+fn get_neighbors_data(chunk_map: &HashMap<ChunkCoord, Chunk>, coord: IVec3) -> Option<[Option<&Box<Array3<Block>>>;6]> {
+    Some([
+        match chunk_map.get(&(ivec3(1,0,0) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+        match chunk_map.get(&(ivec3(-1,0,0) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+        match chunk_map.get(&(ivec3(0,-1,0) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+        match chunk_map.get(&(ivec3(0,1,0) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+        match chunk_map.get(&(ivec3(0,0,1) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+        match chunk_map.get(&(ivec3(0,0,-1) + coord)) {
+            None => return None,
+            Some(chunk) => chunk.get_data().as_ref(),
+        },
+    ])
 }
