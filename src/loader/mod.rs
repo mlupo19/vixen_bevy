@@ -4,7 +4,7 @@ mod generator;
 mod texture;
 mod worldgen;
 
-use bevy::{prelude::*, utils::{HashMap, HashSet}, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::render_resource::FilterMode, ecs::event::Events};
+use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::FilterMode, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
 use chunk::*;
 use futures_lite::future;
 
@@ -52,21 +52,16 @@ impl Plugin for WorldLoaderPlugin {
 }
 
 fn setup(
-    asset_server: Res<AssetServer>,
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
-    let texture_handle = asset_server.load("map.png");
+    let texture_handle: Handle<Image> = asset_server.load("map.png");
 
-    let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(texture_handle),
-        ..default()
-    });
+    commands.insert_resource(texture_handle);
 
     let render_distance = RenderDistance::default();
     commands.spawn().insert(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
     commands.insert_resource(render_distance);
-    commands.insert_resource(material_handle);
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);
     rot = rot.mul_quat(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_6));
@@ -88,11 +83,10 @@ fn setup(
 
 fn scan_chunks(
     scanner: Query<&ChunkScanner>,
-    pool: Res<AsyncComputeTaskPool>,
     commands: Commands,
     mut worldgen: ResMut<Worldgen>,
 ) {
-    worldgen.scan_chunks(scanner, pool, commands);
+    worldgen.scan_chunks(scanner, commands);
 }
 
 fn build_chunks(
@@ -117,14 +111,14 @@ fn queue_mesh_rebuild(
 }
 
 fn build_meshes(
-    pool: Res<AsyncComputeTaskPool>,
-    material_handle: Res<Handle<StandardMaterial>>,
     scanner: Query<&ChunkScanner>,
     meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<StandardMaterial>>,
     commands: Commands,
+    texture_map: Res<Handle<Image>>,
     mut worldgen: ResMut<Worldgen>,
 ) {
-    worldgen.build_meshes(pool, material_handle, scanner, meshes, commands);
+    worldgen.build_meshes(scanner, meshes, materials, commands, texture_map);
 }
 
 fn unload_chunks(
@@ -174,9 +168,13 @@ fn when_texture_loads(
     for event in events.get_reader().iter(&events) {
         match event {
             AssetEvent::Created { handle } => {
-                texture.get_mut(handle).unwrap().sampler_descriptor.min_filter = FilterMode::Linear;
-                texture.get_mut(handle).unwrap().sampler_descriptor.anisotropy_clamp = std::num::NonZeroU8::new(16);
-                texture.get_mut(handle).unwrap().sampler_descriptor.mipmap_filter = FilterMode::Linear;
+                texture.get_mut(handle).unwrap().sampler_descriptor = ImageSampler::nearest();
+                if let Descriptor(ref mut desc) = texture.get_mut(handle).unwrap().sampler_descriptor {
+                    desc.min_filter = FilterMode::Nearest;
+                    desc.anisotropy_clamp = std::num::NonZeroU8::new(16);
+                    desc.mipmap_filter = FilterMode::Linear;
+                    desc.mag_filter = FilterMode::Nearest;
+                }
             },
             AssetEvent::Modified { handle: _ } => (),
             AssetEvent::Removed { handle: _ } => (),

@@ -1,15 +1,16 @@
-use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, pbr::MaterialPipeline};
 use bevy_flycam::MovementSettings;
 use loader::WorldLoaderPlugin;
 use player::PlayerPlugin;
 
 mod loader;
 mod player;
-
+mod physics;
 fn main() {
     App::new()
         .add_startup_system(init_settings)
-        .add_system(bevy::input::system::exit_on_esc_system)
+        .add_system(bevy::window::close_on_esc)
+        .add_system(lock_cursor_position)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldLoaderPlugin)
         .add_plugin(LogDiagnosticsPlugin::default())
@@ -23,6 +24,16 @@ fn init_settings(
     mut move_settings: ResMut<MovementSettings>,
     mut windows: ResMut<Windows>,
 ) {
+    let window = windows.get_primary_mut().unwrap();
+    window.set_resolution(1920.0, 1080.0);
+    // window.set_cursor_lock_mode(true);
+    window.set_cursor_visibility(false);
+    
     move_settings.speed = 10.0;
-    windows.get_primary_mut().unwrap().set_resolution(1920.0, 1080.0);
+}
+
+fn lock_cursor_position(mut windows: ResMut<Windows>) {
+	if let Some(window) = windows.get_primary_mut() {
+		window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
+	}
 }

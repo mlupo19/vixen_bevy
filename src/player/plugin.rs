@@ -1,10 +1,10 @@
-use bevy::{prelude::*, ecs::event::Events, utils::HashMap, math::{ivec3, vec3}, render::camera::Camera3d};
+use bevy::{prelude::*, math::{ivec3, vec3}};
 use bevy_flycam::FlyCam;
 
-use crate::loader::{ChunkScanner, ChunkCoord, ChunkMap, Worldgen, BlockCoord};
+use crate::loader::{ChunkScanner, Worldgen, BlockCoord};
 use crate::player::Block;
 
-use super::{Player, Builder, Miner};
+use super::{Builder, Miner};
 
 pub struct PlayerPlugin;
 
@@ -18,16 +18,16 @@ impl Plugin for PlayerPlugin {
 }
 
 fn setup(
-    mut query: Query<(Entity, &mut PerspectiveProjection)>,
+    query: Query<(Entity, &mut Camera3d)>,
     mut commands: Commands,
 ) {
     commands.get_or_spawn(query.single().0).insert(Builder::default()).insert(Miner::default());
-    query.single_mut().1.set(Box::new(PerspectiveProjection {
-        fov: std::f32::consts::PI / 3.0,
-        near: 0.1,
-        far: 1000.0,
-        aspect_ratio: 16.0/9.0,
-    })).unwrap();
+    // query.single_mut().1.set(Box::new(PerspectiveProjection {
+    //     fov: std::f32::consts::PI / 3.0,
+    //     near: 0.1,
+    //     far: 1000.0,
+    //     aspect_ratio: 16.0/9.0,
+    // })).unwrap();
 }
 
 fn update_camera_pos(
@@ -42,7 +42,6 @@ fn update_player(
     mouse_input: Res<Input<MouseButton>>,
     time: Res<Time>,
     mut worldgen: ResMut<Worldgen>,
-    // mut player: ResMut<Player>,
     mut query: Query<(&Transform, &mut Builder, &mut Miner), With<FlyCam>>,
 ) {
     let (transform, mut builder, mut miner) = query.single_mut();
@@ -58,7 +57,7 @@ fn update_player(
     // Check if player is trying to build
     if mouse_input.pressed(MouseButton::Right) {
         if builder.can_build() {
-            let range = 4.0;
+            let range = 5.0;
             let translation = &transform.translation;
             let coord = cast_ray_in_front(vec3(translation.x, translation.y, translation.z), range, transform.forward(), &worldgen);
             if let Some(coord) = coord {
@@ -79,12 +78,9 @@ fn cast_ray(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> Bl
         if let Some(block) = loader.get_block(&ivec3(x,y,z)) {
             if !block.is_air() {
                 return ivec3(x,y,z);
-            } else {
-                println!("Block ({x} {y} {z}): {:?}", block);
             }
         }
     }
-    println!("------");
     ivec3(start_point[0].floor() as i32, start_point[1].floor() as i32, start_point[2].floor() as i32)
 }
 

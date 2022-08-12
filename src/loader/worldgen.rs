@@ -1,4 +1,4 @@
-use bevy::utils::HashMap;
+use bevy::{utils::HashMap, render::{mesh::{PrimitiveTopology, Indices}, view::NoFrustumCulling, render_resource::VertexAttribute}};
 use crate::loader::*;
 
 pub type ChunkMap = HashMap<ChunkCoord, Chunk>;
@@ -24,7 +24,8 @@ impl Worldgen {
         }
     }
 
-    pub fn scan_chunks(&mut self, scanner: Query<&ChunkScanner>, pool: Res<AsyncComputeTaskPool>, mut commands: Commands,) {
+    pub fn scan_chunks(&mut self, scanner: Query<&ChunkScanner>, mut commands: Commands,) {
+        let pool = AsyncComputeTaskPool::get();
         for scanner in scanner.iter() {
             for chunk_coord in scanner.into_iter() {
                 if !self.chunk_map.contains_key(&chunk_coord) && !self.needs_chunk_build.contains(&chunk_coord) {
@@ -58,12 +59,14 @@ impl Worldgen {
 
     pub fn build_meshes(
         &mut self,
-        pool: Res<AsyncComputeTaskPool>,
-        material_handle: Res<Handle<StandardMaterial>>,
         scanner: Query<&ChunkScanner>,
         mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
         mut commands: Commands,
+        texture_map: Res<Handle<Image>>,
     ) {
+        
+        let pool = AsyncComputeTaskPool::get();
         let task = pool.scope(|scope| {
             self.needs_mesh_build.drain_filter(|coord| {
                 if let Some(chunk) = self.chunk_map.get(&coord) {
@@ -73,13 +76,12 @@ impl Worldgen {
                             let data = chunk.get_data().as_ref().unwrap();
                             let coord = coord.clone();
                             scope.spawn(async move {
-                                let (vertices, normals, texture_coords, indices) = Chunk::gen_mesh(&data, neighbors, info);
+                                let (positions, normals, uvs, indices) = Chunk::gen_mesh(&data, neighbors, info);
                                 let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList);
-                                mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
-                                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+                                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
                                 mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, texture_coords);
-    
+                                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+                                mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
                                 (coord, mesh)
                             });
     
@@ -97,11 +99,22 @@ impl Worldgen {
             }
             let mesh_handle = meshes.add(mesh);
             self.mesh_map.insert(coord, mesh_handle.clone());
+            // commands.spawn().insert_bundle((
+            //     mesh_handle,
+            //     Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
+            //     GlobalTransform::default(),
+            //     Visibility::default(),
+            //     ComputedVisibility::default(),
+            // ));
             commands.spawn_bundle(MaterialMeshBundle {
                 mesh: mesh_handle,
-                material: material_handle.as_ref().clone(),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::WHITE,//Color::rgb(0.08, 0.87, 0.09),
+                    base_color_texture: Some(texture_map.clone()),
+                    ..default()
+                }),
                 transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
-                ..Default::default()
+                ..default()
             });
             self.chunk_map.get_mut(&coord).unwrap().set_updated();
         }

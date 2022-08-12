@@ -100,13 +100,11 @@ impl Chunk {
 
     fn add_face(
         block_data: &Array3<Block>,
-        vertices: &mut Vec<[f32;3]>,
-        normals: &mut Vec<[f32;3]>,
-        texture_coords: &mut Vec<[f32;2]>,
+        vertex_data: &mut VertexDataList,
         indices: &mut Vec<u32>,
         (i, j, k): (usize, usize, usize),
         face: &Face,
-        texture_map_info: &HashMap<u16, [[[f32; 2]; 4]; 6]>,
+        texture_map_info: &HashMap<u16, [[[u32; 2]; 4]; 6]>,
     ) {
         const FACE_INDICES: &[i32; 6] = &[0, 1, 2, 2, 3, 0];
         let mut mesh_face_index_loc: [usize; 4] = [0; 4];
@@ -114,14 +112,24 @@ impl Chunk {
         for c in 0..4 {
             let (fx, fy, fz) = face.points.get(c).unwrap();
             let point_in_chunk_space = (i as i32 + fx, j as i32 + fy, k as i32 + fz);
-            mesh_face_index_loc[c] = vertices.len() as usize;
+            mesh_face_index_loc[c] = vertex_data.0.len() as usize;
 
-            vertices.push([point_in_chunk_space.0 as f32, point_in_chunk_space.1 as f32, point_in_chunk_space.2 as f32]);
-            normals.push([face.normal.0 as f32, face.normal.1 as f32, face.normal.2 as f32]);
             let face_tex_coords = texture_map_info
                 .get(&block_data.get((i, j, k)).unwrap().id)
                 .unwrap()[face.face_id as usize];
-            texture_coords.push([face_tex_coords[c][0],face_tex_coords[c][1]]);
+
+            // vertices_normals_uvs.push(
+            //     (point_in_chunk_space.0 as u32)
+            //     | (point_in_chunk_space.1 as u32) << 6
+            //     | (point_in_chunk_space.2 as u32) << 12
+            //     | (face.normal.0 as u32) << 18
+            //     | (face.normal.1 as u32) << 19
+            //     | (face.normal.2 as u32) << 20
+            //     | face_tex_coords[c][0] << 21
+            //     | face_tex_coords[c][1] << 22);
+            vertex_data.0.push([point_in_chunk_space.0 as f32, point_in_chunk_space.1 as f32, point_in_chunk_space.2 as f32]);
+            vertex_data.1.push([face.normal.0 as f32, face.normal.1 as f32, face.normal.2 as f32]);
+            vertex_data.2.push([face_tex_coords[c][0] as f32 / 16.0, face_tex_coords[c][1] as f32 / 16.0]);
         }
 
         for ind in FACE_INDICES.iter() {
@@ -132,11 +140,10 @@ impl Chunk {
     pub fn gen_mesh(
         block_data: &Array3<Block>,
         neighbors: [Option<&Box<Array3<Block>>>;6],
-        texture_map_info: &HashMap<u16, [[[f32; 2]; 4]; 6]>,
+        texture_map_info: &HashMap<u16, [[[u32; 2]; 4]; 6]>,
     ) -> MeshData {
-        let mut vertices = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2);
-        let mut normals = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2);
-        let mut texture_coords = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2);
+        let presize = CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2;
+        let mut vertex_data = VertexDataList(Vec::with_capacity(presize), Vec::with_capacity(presize), Vec::with_capacity(presize));
         let mut indices = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2 * 3);
 
         for i in 0..CHUNK_SIZE.0 {
@@ -168,9 +175,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::RIGHT,
@@ -180,9 +185,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::RIGHT,
@@ -212,9 +215,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::LEFT,
@@ -224,9 +225,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::LEFT,
@@ -256,9 +255,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BOTTOM,
@@ -268,9 +265,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BOTTOM,
@@ -300,9 +295,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::TOP,
@@ -312,9 +305,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::TOP,
@@ -344,9 +335,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::FRONT,
@@ -356,9 +345,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::FRONT,
@@ -388,9 +375,7 @@ impl Chunk {
                                 {
                                     Chunk::add_face(
                                         &block_data,
-                                        &mut vertices,
-                                        &mut normals,
-                                        &mut texture_coords,
+                                        &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BACK,
@@ -400,9 +385,7 @@ impl Chunk {
                             } else {
                                 Chunk::add_face(
                                     &block_data,
-                                    &mut vertices,
-                                    &mut normals,
-                                    &mut texture_coords,
+                                    &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BACK,
@@ -415,7 +398,7 @@ impl Chunk {
             }
         }
 
-        (vertices, normals, texture_coords, indices)
+        (vertex_data.0, vertex_data.1, vertex_data.2, indices)
     }
 
     pub fn set_block(&mut self, (i, j, k): (usize, usize, usize), block: Block) -> bool {
@@ -474,3 +457,5 @@ impl Chunk {
         self.needs_update = true;
     }
 }
+
+struct VertexDataList(Vec<[f32;3]>, Vec<[f32;3]>, Vec<[f32;2]>);
