@@ -1,50 +1,50 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
-use bevy_flycam::FlyCam;
 
-use crate::loader::{ChunkScanner, Worldgen, BlockCoord};
+use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, Collider}};
 use crate::player::Block;
 
-use super::{Builder, Miner};
+use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(bevy_flycam::PlayerPlugin);
-        app.add_system_to_stage(CoreStage::PreUpdate, update_camera_pos);
-        app.add_system(update_player);
+        app.add_plugin(PlayerCameraPlugin);
+        app.add_system(mine_and_build);
+        app.add_system(update_scanner);
+        app.add_system(player_move);
         app.add_startup_system_to_stage(StartupStage::PostStartup, setup);
     }
 }
 
 fn setup(
-    query: Query<(Entity, &mut Camera3d)>,
     mut commands: Commands,
 ) {
-    commands.get_or_spawn(query.single().0).insert(Builder::default()).insert(Miner::default());
-    // query.single_mut().1.set(Box::new(PerspectiveProjection {
-    //     fov: std::f32::consts::PI / 3.0,
-    //     near: 0.1,
-    //     far: 1000.0,
-    //     aspect_ratio: 16.0/9.0,
-    // })).unwrap();
+    let cam = commands.spawn().insert_bundle(Camera3dBundle {
+        transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    }).id();
+
+    commands.spawn_bundle(PlayerBundle {
+        transform: Transform::from_translation(Vec3::new(0.0,10.0,0.0)),
+        movement: Movement::default(),
+        miner: Miner::default(),
+        builder: Builder::default(),
+        storage: StorageContainer::new(32),
+        camera: PlayerCam(cam),
+        player: Player::default(),
+    });
 }
 
-fn update_camera_pos(
-    mut scanner: Query<&mut ChunkScanner>,
-    query: Query<&Transform, With<FlyCam>>,
-) {
-    let translation = query.single().translation.clone();
-    scanner.get_single_mut().unwrap().update(translation);
-}
-
-fn update_player(
+fn mine_and_build(
     mouse_input: Res<Input<MouseButton>>,
     time: Res<Time>,
+    camera_transform: Query<&Transform, With<Camera3d>>,
     mut worldgen: ResMut<Worldgen>,
-    mut query: Query<(&Transform, &mut Builder, &mut Miner), With<FlyCam>>,
+    mut query: Query<(&mut Builder, &mut Miner), With<Player>>,
 ) {
-    let (transform, mut builder, mut miner) = query.single_mut();
+    let (mut builder, mut miner) = query.single_mut();
+    let transform = camera_transform.single();
     
     // Check if player is trying to mine
     if mouse_input.pressed(MouseButton::Left) {
@@ -85,7 +85,7 @@ fn cast_ray(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> Bl
 }
 
 /// Casts a ray and returns block coordinate of the air block in front of the block the ray hit, and None otherwise
-fn cast_ray_in_front(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> Option<BlockCoord>{
+fn cast_ray_in_front(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> Option<BlockCoord> {
     let displacement = forward * rho;
     let end_point = (start_point[0] + displacement.x, start_point[1] + displacement.y, start_point[2] + displacement.z);
     let mut last = ivec3(start_point[0].floor() as i32, start_point[1].floor() as i32, start_point[2].floor() as i32);
@@ -99,4 +99,52 @@ fn cast_ray_in_front(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldg
         last = ivec3(x,y,z);
     }
     None
+}
+
+fn update_scanner(
+    camera_transform: Query<&Transform, With<Camera3d>>,
+    mut scanner: Query<&mut ChunkScanner>,
+) {
+    let transform = camera_transform.single();
+    scanner.get_single_mut().unwrap().update(transform.translation);
+}
+
+fn player_move(
+    time: Res<Time>,
+    worldgen: Res<Worldgen>,
+    mut query: Query<(&mut Transform, &mut Movement), With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
+) {
+    let (mut transform, mut movement) = query.single_mut();
+    movement.velocity -= Vec3::Y * 1. * time.delta_seconds();
+    let velo = movement.velocity;
+    movement.delta += velo * time.delta_seconds();
+    let instantaneous_velo = movement.delta;
+
+    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation, instantaneous_velo));
+
+    transform.translation += movement.delta;
+    movement.delta = Vec3::ZERO;
+    camera_query.single_mut().translation = transform.translation + Vec3::new(0.0,1.5,0.0);
+}
+
+fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, mut aabb: AABB) {
+    for block in get_nearby_blocks(worldgen, &aabb.clone()) {
+        let block_aabb = AABB::from_block(&block);
+        aabb.collide(&block_aabb, movement);
+    }
+}
+
+fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Iterator<Item = IVec3> + 'a {
+    let (x_min, x_max) = (aabb.min.x.floor() as i32 - 1, aabb.max.x.floor() as i32 + 1);
+    let (y_min, y_max) = (aabb.min.y.floor() as i32 - 1, aabb.max.y.floor() as i32 + 1);
+    let (z_min, z_max) = (aabb.min.z.floor() as i32 - 1, aabb.max.z.floor() as i32 + 1);
+
+    (x_min..x_max).flat_map(
+        move |x| (y_min..y_max).flat_map(
+            move |y| (z_min..z_max).map(
+                move |z| ivec3(x,y,z)
+            )
+        )
+     ).filter(move |coord| !worldgen.get_block(coord).unwrap_or(Block::air()).is_air())
 }

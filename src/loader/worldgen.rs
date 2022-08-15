@@ -1,4 +1,4 @@
-use bevy::{utils::HashMap, render::{mesh::{PrimitiveTopology, Indices}, view::NoFrustumCulling, render_resource::VertexAttribute}};
+use bevy::utils::HashMap;
 use crate::loader::*;
 
 pub type ChunkMap = HashMap<ChunkCoord, Chunk>;

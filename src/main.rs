@@ -1,16 +1,17 @@
-use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, pbr::MaterialPipeline};
-use bevy_flycam::MovementSettings;
+use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use player::player_cam::MovementSettings;
 use loader::WorldLoaderPlugin;
 use player::PlayerPlugin;
 
 mod loader;
 mod player;
+mod storage;
 mod physics;
+
 fn main() {
     App::new()
         .add_startup_system(init_settings)
         .add_system(bevy::window::close_on_esc)
-        .add_system(lock_cursor_position)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldLoaderPlugin)
         .add_plugin(LogDiagnosticsPlugin::default())
@@ -25,9 +26,9 @@ fn init_settings(
     mut windows: ResMut<Windows>,
 ) {
     let window = windows.get_primary_mut().unwrap();
-    window.set_resolution(1920.0, 1080.0);
+    // window.set_resolution(1920.0, 1080.0);
     // window.set_cursor_lock_mode(true);
-    window.set_cursor_visibility(false);
+    // window.set_cursor_visibility(false);
     
     move_settings.speed = 10.0;
 }
