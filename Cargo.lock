@@ -3206,7 +3206,6 @@ dependencies = [
  "bevy",
  "bevy_flycam",
  "bevy_mod_debugdump",
- "bitflags",
  "futures-lite",
  "line_drawing",
  "ndarray",

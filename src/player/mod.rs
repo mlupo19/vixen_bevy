@@ -1,4 +1,5 @@
 mod plugin;
+pub mod player_cam;
 
 use bevy::{utils::Instant, prelude::Component};
 use bevy::prelude::*;
@@ -6,9 +7,26 @@ pub use plugin::PlayerPlugin;
 
 use crate::loader::{BlockCoord, Worldgen};
 use crate::loader::Block;
+use crate::physics::Movement;
+use crate::storage::StorageContainer;
 
-#[derive(Default)]
+use self::player_cam::PlayerCam;
+
+pub const PLAYER_SIZE: (f32,f32,f32) = (0.75,1.75,0.75);
+
+#[derive(Component, Default)]
 pub struct Player;
+
+#[derive(Bundle)]
+pub struct PlayerBundle {
+    transform: Transform,
+    movement: Movement,
+    miner: Miner,
+    builder: Builder,
+    storage: StorageContainer,
+    camera: PlayerCam,
+    player: Player,
+}
 
 #[derive(Component)]
 struct Miner {
