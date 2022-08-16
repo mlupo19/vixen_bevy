@@ -56,11 +56,11 @@ fn player_input(
     time: Res<Time>,
     windows: Res<Windows>,
     settings: Res<MovementSettings>,
-    mut player_query: Query<(&mut Transform, &mut PlayerCam, &mut Player, &mut Movement)>,
+    mut player_query: Query<(&mut Transform, &mut PlayerCam, &mut Movement), With<Player>>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     if let Some(window) = windows.get_primary() {
-        for (mut transform, cam, mut player, mut movement) in player_query.iter_mut() {
+        for (mut transform, cam, mut movement) in player_query.iter_mut() {
             let cam_transform = camera_query.get_mut(cam.0).unwrap();
             let mut delta = Vec3::ZERO;
             transform.rotation = cam_transform.rotation;

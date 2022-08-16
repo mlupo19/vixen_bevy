@@ -116,7 +116,7 @@ fn player_move(
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     let (mut transform, mut movement) = query.single_mut();
-    movement.velocity -= Vec3::Y * 1. * time.delta_seconds();
+    movement.velocity -= Vec3::Y * 5. * time.delta_seconds();
     let velo = movement.velocity;
     movement.delta += velo * time.delta_seconds();
     let instantaneous_velo = movement.delta;

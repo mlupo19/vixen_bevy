@@ -1,4 +1,6 @@
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy_egui::{EguiPlugin, EguiContext};
+use debug::DebugPlugin;
 use player::player_cam::MovementSettings;
 use loader::WorldLoaderPlugin;
 use player::PlayerPlugin;
@@ -7,16 +9,19 @@ mod loader;
 mod player;
 mod storage;
 mod physics;
+mod debug;
 
 fn main() {
     App::new()
         .add_startup_system(init_settings)
         .add_system(bevy::window::close_on_esc)
+        .add_plugins(DefaultPlugins)
         .add_plugin(PlayerPlugin)
         .add_plugin(WorldLoaderPlugin)
+        .add_plugin(EguiPlugin)
+        .add_plugin(DebugPlugin)
         .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugins(DefaultPlugins)
         .insert_resource(Msaa { samples: 4 })
         .run();    
 }

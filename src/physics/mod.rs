@@ -45,16 +45,15 @@ impl Collider<AABB> for AABB {
             collide_time = entry_time;
             normal = match entry_time {
                 t if t == tx.0 => {/*movement.velocity.x = 0.0;*/println!("X collide: {}", tx.2.signum()); vec3(-1.0, 0.0, 0.0) * tx.2.signum()},
-                t if t == ty.0 => {/*movement.velocity.y = 0.0;*/ vec3(0.0, -1.0, 0.0) * ty.2.signum()},
+                t if t == ty.0 => {movement.velocity.y = 0.0; vec3(0.0, -1.0, 0.0) * ty.2.signum()},
                 t if t == tz.0 => {/*movement.velocity.z = 0.0;*/println!("z collide: {}", tz.2.signum()); vec3(0.0, 0.0, -1.0) * tz.2.signum()},
                 _ => vec3(0.0, 0.0, 0.0),
             };
         }
         movement.delta *= collide_time;
         let remaining_time = 1.0 - collide_time;
-        let magnitude = movement.velocity.length() * remaining_time;
-        let dotprod = movement.velocity.dot(normal).signum();
-        movement.velocity = dotprod * normal * magnitude;
+
+        //movement.velocity -= remaining_time * movement.velocity.neg().dot(normal) * normal;
     }
 }
 
