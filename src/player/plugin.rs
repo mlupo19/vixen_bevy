@@ -128,9 +128,33 @@ fn player_move(
 }
 
 fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, mut aabb: AABB) {
-    for block in get_nearby_blocks(worldgen, &aabb.clone()) {
-        let block_aabb = AABB::from_block(&block);
-        aabb.collide(&block_aabb, movement);
+    const EPSILON: f32 = 0.0001;
+
+    let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &aabb.clone()).collect();
+    
+    let mut collisions_remain = true;
+    while collisions_remain {
+        collisions_remain = false;
+
+        let (mut nearest_collision, mut nearest_collision_tangent) = (1.0, Vec3::ZERO);
+
+        for block in &nearby_blocks {
+            let block_aabb = AABB::from_block(block);
+            if let Some((collision_time, tangent)) = aabb.collide(&block_aabb, movement) {
+                if collision_time < nearest_collision {
+                    nearest_collision = collision_time;
+                    nearest_collision_tangent = tangent;
+                }
+                collisions_remain = true;
+            }
+        }
+
+        // Stop movement when hit wall, with epsilon to keep from getting stuck
+        movement.delta *= nearest_collision - EPSILON;
+
+        // Slide against wall
+        let remaining_time = 1.0 - nearest_collision;
+        movement.delta += remaining_time * nearest_collision_tangent;
     }
 }
 

@@ -12,7 +12,7 @@ use crate::storage::StorageContainer;
 
 use self::player_cam::PlayerCam;
 
-pub const PLAYER_SIZE: (f32,f32,f32) = (0.75,1.75,0.75);
+pub const PLAYER_SIZE: (f32,f32,f32) = (0.6,1.8,0.6);
 
 #[derive(Component, Default)]
 pub struct Player;

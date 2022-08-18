@@ -3,7 +3,7 @@ use bevy::{prelude::{Vec3, IVec3, Component}, math::vec3};
 use crate::player::PLAYER_SIZE;
 
 pub trait Collider<T> {
-    fn collide(&mut self, other: &T, movement: &mut Movement);
+    fn collide(&mut self, other: &T, movement: &mut Movement) -> Option<(f32, Vec3)>;
 }
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl AABB {
 }
 
 impl Collider<AABB> for AABB {
-    fn collide(&mut self, other: &AABB, movement: &mut Movement) {
+    fn collide(&mut self, other: &AABB, movement: &mut Movement) -> Option<(f32, Vec3)> {
         // Get collision times/distances for each axis
         let tx = collide_time_axis(Axis {min: self.min.x, max: self.max.x, velo: movement.delta.x}, Axis {min: other.min.x, max: other.max.x, velo: 0.0});
         let ty = collide_time_axis(Axis {min: self.min.y, max: self.max.y, velo: movement.delta.y}, Axis {min: other.min.y, max: other.max.y, velo: 0.0});
@@ -45,8 +45,7 @@ impl Collider<AABB> for AABB {
 
         // Check if a collision will occur
         if entry_time > exit_time || (tx.0 < 0.0 && ty.0 < 0.0 && tz.0 < 0.0) || tx.0 > 1.0 || ty.0 > 1.0 || tz.0 > 1.0 {
-            collide_time = 1.0;
-            _normal = vec3(0.0, 0.0, 0.0); tangent = vec3(0.0, 0.0, 0.0);
+            None
         } else {
             collide_time = entry_time;
             _normal = match entry_time {
@@ -55,15 +54,19 @@ impl Collider<AABB> for AABB {
                 t if t == tz.0 => {tangent.z = 0.0; movement.velocity.z = 0.0; vec3(0.0, 0.0, -1.0) * tz.2.signum()},
                 _ => unreachable!("entry_time != x, y, or z entry time"),
             };
+            Some((collide_time, tangent))
         }
+    }
 
+    /*
+    
         // Stop movement when hit wall, with epsilon to keep from getting stuck
         movement.delta *= collide_time - 0.00001;
         
         // Slide against wall
         let remaining_time = 1.0 - collide_time;
         movement.delta += remaining_time * tangent;
-    }
+    */
 }
 
 
