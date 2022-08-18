@@ -76,7 +76,8 @@ fn player_input(
                         KeyCode::S => delta += -forward,
                         KeyCode::A => delta += -right,
                         KeyCode::D => delta += right,
-                        KeyCode::Space => movement.velocity += Vec3::Y * time.delta_seconds() * settings.jump_power,
+                        KeyCode::Space => delta += Vec3::Y,//movement.velocity += Vec3::Y * time.delta_seconds() * settings.jump_power,
+                        KeyCode::LShift => delta -= Vec3::Y,
                         _ => (),
                     }
                 }
@@ -132,6 +133,14 @@ fn cursor_grab(keys: Res<Input<KeyCode>>, mut windows: ResMut<Windows>) {
     }
 }
 
+fn lock_cursor_position(mut windows: ResMut<Windows>) {
+	if let Some(window) = windows.get_primary_mut() {
+        if window.cursor_locked() {
+		    window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
+        }
+	}
+}
+
 /// Contains everything needed to add first-person camera behavior to your game
 pub struct PlayerCameraPlugin;
 impl Plugin for PlayerCameraPlugin {
@@ -141,6 +150,7 @@ impl Plugin for PlayerCameraPlugin {
             .add_startup_system(initial_grab_cursor)
             .add_system_to_stage(CoreStage::PreUpdate, player_input)
             .add_system_to_stage(CoreStage::PreUpdate,player_look)
-            .add_system_to_stage(CoreStage::PreUpdate,cursor_grab);
+            .add_system_to_stage(CoreStage::PreUpdate,cursor_grab)
+            .add_system(lock_cursor_position);
     }
 }

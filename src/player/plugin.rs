@@ -26,7 +26,7 @@ fn setup(
     }).id();
 
     commands.spawn_bundle(PlayerBundle {
-        transform: Transform::from_translation(Vec3::new(0.0,10.0,0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0,100.0,0.0)),
         movement: Movement::default(),
         miner: Miner::default(),
         builder: Builder::default(),
@@ -119,9 +119,8 @@ fn player_move(
     movement.velocity -= Vec3::Y * 5. * time.delta_seconds();
     let velo = movement.velocity;
     movement.delta += velo * time.delta_seconds();
-    let instantaneous_velo = movement.delta;
 
-    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation, instantaneous_velo));
+    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation));
 
     transform.translation += movement.delta;
     movement.delta = Vec3::ZERO;
@@ -136,9 +135,9 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, mut aabb:
 }
 
 fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Iterator<Item = IVec3> + 'a {
-    let (x_min, x_max) = (aabb.min.x.floor() as i32 - 1, aabb.max.x.floor() as i32 + 1);
-    let (y_min, y_max) = (aabb.min.y.floor() as i32 - 1, aabb.max.y.floor() as i32 + 1);
-    let (z_min, z_max) = (aabb.min.z.floor() as i32 - 1, aabb.max.z.floor() as i32 + 1);
+    let (x_min, x_max) = (aabb.min.x.floor() as i32 - 1, aabb.max.x.ceil() as i32 + 1);
+    let (y_min, y_max) = (aabb.min.y.floor() as i32 - 1, aabb.max.y.ceil() as i32 + 1);
+    let (z_min, z_max) = (aabb.min.z.floor() as i32 - 1, aabb.max.z.ceil() as i32 + 1);
 
     (x_min..x_max).flat_map(
         move |x| (y_min..y_max).flat_map(

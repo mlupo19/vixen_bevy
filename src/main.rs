@@ -1,5 +1,5 @@
 use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
-use bevy_egui::{EguiPlugin, EguiContext};
+use bevy_egui::EguiPlugin;
 use debug::DebugPlugin;
 use player::player_cam::MovementSettings;
 use loader::WorldLoaderPlugin;
@@ -28,18 +28,12 @@ fn main() {
 
 fn init_settings(
     mut move_settings: ResMut<MovementSettings>,
-    mut windows: ResMut<Windows>,
+    // mut windows: ResMut<Windows>,
 ) {
-    let window = windows.get_primary_mut().unwrap();
+    // let window = windows.get_primary_mut().unwrap();
     // window.set_resolution(1920.0, 1080.0);
     // window.set_cursor_lock_mode(true);
     // window.set_cursor_visibility(false);
     
     move_settings.speed = 10.0;
-}
-
-fn lock_cursor_position(mut windows: ResMut<Windows>) {
-	if let Some(window) = windows.get_primary_mut() {
-		window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
-	}
 }

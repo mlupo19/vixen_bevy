@@ -1,5 +1,5 @@
 use bevy::utils::HashMap;
-use std::{fs::File, sync::Arc};
+use std::fs::File;
 use serde::{Deserialize, Serialize};
 
 pub struct TextureMapInfo {
@@ -37,8 +37,6 @@ pub fn load_texture_map_info(image_dimensions: (usize,usize)) -> TextureMapInfo 
     assert_eq!(image_dimensions.0, image_dimensions.1);
     
     // Process info
-    let unit_grid_size = image_dimensions.0 as u32 / info.grid;
-    
     let info = calculate(info.grid, info);
 
     TextureMapInfo { info }
