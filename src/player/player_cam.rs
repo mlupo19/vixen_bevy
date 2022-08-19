@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::physics::Movement;
 
-use super::Player;
+use super::{Player, Jumper};
 
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Default)]
@@ -26,7 +26,7 @@ impl Default for MovementSettings {
         Self {
             sensitivity: 0.00012,
             speed: 12.,
-            jump_power: 12.,
+            jump_power: 425.,
         }
     }
 }
@@ -34,6 +34,12 @@ impl Default for MovementSettings {
 /// A marker component used in queries when you want player cams and not other cameras
 #[derive(Component)]
 pub struct PlayerCam(pub Entity);
+
+impl PlayerCam {
+    pub fn get(&self) -> Entity {
+        self.0
+    }
+}
 
 /// Grabs/ungrabs mouse cursor
 fn toggle_grab_cursor(window: &mut Window) {
@@ -56,12 +62,12 @@ fn player_input(
     time: Res<Time>,
     windows: Res<Windows>,
     settings: Res<MovementSettings>,
-    mut player_query: Query<(&mut Transform, &mut PlayerCam, &mut Movement), With<Player>>,
+    mut player_query: Query<(&mut Transform, &mut PlayerCam, &mut Movement, &mut Jumper), With<Player>>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     if let Some(window) = windows.get_primary() {
-        for (mut transform, cam, mut movement) in player_query.iter_mut() {
-            let cam_transform = camera_query.get_mut(cam.0).unwrap();
+        for (mut transform, cam, mut movement, mut jumper) in player_query.iter_mut() {
+            let cam_transform = camera_query.get_mut(cam.get()).unwrap();
             let mut delta = Vec3::ZERO;
             transform.rotation = cam_transform.rotation;
             
@@ -76,8 +82,10 @@ fn player_input(
                         KeyCode::S => delta += -forward,
                         KeyCode::A => delta += -right,
                         KeyCode::D => delta += right,
-                        KeyCode::Space => delta += Vec3::Y,//movement.velocity += Vec3::Y * time.delta_seconds() * settings.jump_power,
-                        KeyCode::LShift => delta -= Vec3::Y,
+                        KeyCode::Space => if jumper.0 {
+                            movement.velocity += Vec3::Y * time.delta_seconds() * settings.jump_power;
+                            jumper.0 = false;
+                        },
                         _ => (),
                     }
                 }

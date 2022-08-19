@@ -1,9 +1,9 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
 
-use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, Collider}};
+use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
 use crate::player::Block;
 
-use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle};
+use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle, Jumper};
 
 pub struct PlayerPlugin;
 
@@ -33,6 +33,7 @@ fn setup(
         storage: StorageContainer::new(32),
         camera: PlayerCam(cam),
         player: Player::default(),
+        jumper: Jumper(false),
     });
 }
 
@@ -112,22 +113,22 @@ fn update_scanner(
 fn player_move(
     time: Res<Time>,
     worldgen: Res<Worldgen>,
-    mut query: Query<(&mut Transform, &mut Movement), With<Player>>,
+    mut query: Query<(&mut Transform, &mut Movement, &mut Jumper), With<Player>>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
-    let (mut transform, mut movement) = query.single_mut();
-    movement.velocity -= Vec3::Y * 5. * time.delta_seconds();
+    let (mut transform, mut movement, mut jumper) = query.single_mut();
+    movement.velocity -= Vec3::Y * 16. * time.delta_seconds();
     let velo = movement.velocity;
     movement.delta += velo * time.delta_seconds();
 
-    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation));
+    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper);
 
     transform.translation += movement.delta;
     movement.delta = Vec3::ZERO;
     camera_query.single_mut().translation = transform.translation + Vec3::new(0.0,1.5,0.0);
 }
 
-fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, mut aabb: AABB) {
+fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper) {
     const EPSILON: f32 = 0.0001;
 
     let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &aabb.clone()).collect();
@@ -140,10 +141,14 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, mut aabb:
 
         for block in &nearby_blocks {
             let block_aabb = AABB::from_block(block);
-            if let Some((collision_time, tangent)) = aabb.collide(&block_aabb, movement) {
+            if let Some((collision_time, tangent)) = aabb.swept_collide(&block_aabb, movement) {
                 if collision_time < nearest_collision {
                     nearest_collision = collision_time;
                     nearest_collision_tangent = tangent;
+
+                    if tangent.y == 0.0 {
+                        jumper.0 = true;
+                    }
                 }
                 collisions_remain = true;
             }

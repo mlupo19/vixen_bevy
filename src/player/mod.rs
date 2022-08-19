@@ -26,6 +26,7 @@ pub struct PlayerBundle {
     storage: StorageContainer,
     camera: PlayerCam,
     player: Player,
+    jumper: Jumper,
 }
 
 #[derive(Component)]
@@ -91,3 +92,6 @@ impl Default for Builder {
         Self(Instant::now())
     }
 }
+
+#[derive(Component)]
+pub struct Jumper(pub bool);

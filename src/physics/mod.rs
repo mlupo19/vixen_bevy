@@ -2,8 +2,12 @@ use bevy::{prelude::{Vec3, IVec3, Component}, math::vec3};
 
 use crate::player::PLAYER_SIZE;
 
-pub trait Collider<T> {
-    fn collide(&mut self, other: &T, movement: &mut Movement) -> Option<(f32, Vec3)>;
+pub trait SweptCollider<T: BroadphaseCollider<T>> {
+    fn swept_collide(&self, other: &T, movement: &mut Movement) -> Option<(f32, Vec3)>;
+}
+
+pub trait BroadphaseCollider<T> {
+    fn might_collide(&self, other: &T, movement: &Movement) -> bool;
 }
 
 #[derive(Clone)]
@@ -19,18 +23,28 @@ impl AABB {
     }
 
     pub fn from_block(position: &IVec3) -> Self {
-        Self { min: position.as_vec3(), max: (*position + IVec3::ONE).as_vec3() }
+        AABB::new(position.as_vec3(), (*position + IVec3::ONE).as_vec3())
     }
 
     pub fn from_player(position: Vec3) -> Self {
         let min = Vec3::new(position.x - PLAYER_SIZE.0 / 2., position.y, position.z - PLAYER_SIZE.2 / 2.);
         let max = Vec3::new(position.x + PLAYER_SIZE.0 / 2., position.y + PLAYER_SIZE.1, position.z + PLAYER_SIZE.2 / 2.);
-        Self { min, max }
+        AABB::new(min, max)
+    }
+
+    pub fn intersects(&self, other: &AABB) -> bool {
+        self.min.x < other.max.x && self.max.x > other.min.x &&
+        self.min.y < other.max.y && self.max.y > other.min.y &&
+        self.min.z < other.max.z && self.max.z > other.min.z
     }
 }
 
-impl Collider<AABB> for AABB {
-    fn collide(&mut self, other: &AABB, movement: &mut Movement) -> Option<(f32, Vec3)> {
+impl SweptCollider<AABB> for AABB {
+    fn swept_collide(&self, other: &AABB, movement: &mut Movement) -> Option<(f32, Vec3)> {
+        if !self.might_collide(other, &movement) {
+            return None;
+        }
+
         // Get collision times/distances for each axis
         let tx = collide_time_axis(Axis {min: self.min.x, max: self.max.x, velo: movement.delta.x}, Axis {min: other.min.x, max: other.max.x, velo: 0.0});
         let ty = collide_time_axis(Axis {min: self.min.y, max: self.max.y, velo: movement.delta.y}, Axis {min: other.min.y, max: other.max.y, velo: 0.0});
@@ -57,16 +71,14 @@ impl Collider<AABB> for AABB {
             Some((collide_time, tangent))
         }
     }
+}
 
-    /*
-    
-        // Stop movement when hit wall, with epsilon to keep from getting stuck
-        movement.delta *= collide_time - 0.00001;
-        
-        // Slide against wall
-        let remaining_time = 1.0 - collide_time;
-        movement.delta += remaining_time * tangent;
-    */
+
+impl BroadphaseCollider<AABB> for AABB {
+    fn might_collide(&self, other: &AABB, movement: &Movement) -> bool {
+        let extended_aabb = AABB::new(self.min.min(self.min + movement.delta), self.max.max(self.max + movement.delta));
+        extended_aabb.intersects(other)
+    }
 }
 
 
@@ -107,17 +119,17 @@ pub struct Movement {
 mod tests {
     use bevy::math::{ivec3, vec3};
 
-    use super::{AABB, Collider, Movement};
+    use super::{AABB, SweptCollider, Movement};
 
     #[test]
     fn test_aabb() {
-        let mut box1 = AABB::from_player(vec3(0.0,0.0,0.0));
+        let box1 = AABB::from_player(vec3(0.0,0.0,0.0));
         let box2 = AABB::from_block(&ivec3(2,0,0));
 
         let mut mvmt = Movement::default();
         mvmt.velocity = vec3(4.0, 0.0, 0.0);
         mvmt.delta = vec3(4.0, 0.0, 0.0);
-        box1.collide(&box2, &mut mvmt);
-        assert_eq!(mvmt.delta,vec3(1.625, 0.0, 0.0))
+        let x = box1.swept_collide(&box2, &mut mvmt);
+        assert_eq!(x.expect("Should collide").1, vec3(0.0,0.0,0.0))
     }
 }
