@@ -17,7 +17,6 @@ pub struct AABB {
 }
 
 impl AABB {
-    #[allow(dead_code)]
     pub fn new(min: Vec3, max: Vec3)-> Self {
         Self { min, max }
     }
@@ -32,6 +31,7 @@ impl AABB {
         AABB::new(min, max)
     }
 
+    #[inline]
     pub fn intersects(&self, other: &AABB) -> bool {
         self.min.x < other.max.x && self.max.x > other.min.x &&
         self.min.y < other.max.y && self.max.y > other.min.y &&
@@ -75,6 +75,7 @@ impl SweptCollider<AABB> for AABB {
 
 
 impl BroadphaseCollider<AABB> for AABB {
+    #[inline]
     fn might_collide(&self, other: &AABB, movement: &Movement) -> bool {
         let extended_aabb = AABB::new(self.min.min(self.min + movement.delta), self.max.max(self.max + movement.delta));
         extended_aabb.intersects(other)

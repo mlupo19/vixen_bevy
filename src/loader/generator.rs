@@ -8,6 +8,7 @@ pub struct TerrainGenerator {
     seed: u32,
     noise: noise::Perlin,
     sea_level: i32,
+    
 }
 
 impl TerrainGenerator {

@@ -52,7 +52,6 @@ fn mine_and_build(
         let range = 4.0;
         let coord = cast_ray(transform.translation, range, transform.forward(), &worldgen);
         miner.mine(&coord, time.delta().as_secs_f32(), 10.0, &mut worldgen);
-        println!("mining at {coord} from {}", transform.translation);
     }
 
     // Check if player is trying to build

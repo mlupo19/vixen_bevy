@@ -57,8 +57,6 @@ impl Miner {
         self.mining_progress += delta * speed;
         if health - self.mining_progress <= 0.0 && !block.is_air() {
             worldgen.set_block(coord, Block::air());
-        } else {
-            println!("{} health left, ID: {}", health - self.mining_progress, block.id);
         }
     }
 

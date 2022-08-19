@@ -20,8 +20,8 @@ fn main() {
         .add_plugin(WorldLoaderPlugin)
         .add_plugin(EguiPlugin)
         .add_plugin(DebugPlugin)
-        .add_plugin(LogDiagnosticsPlugin::default())
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        // .add_plugin(LogDiagnosticsPlugin::default())
+        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(Msaa { samples: 4 })
         .run();    
 }
