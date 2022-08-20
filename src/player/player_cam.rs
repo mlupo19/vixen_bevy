@@ -72,8 +72,8 @@ fn player_input(
             transform.rotation = cam_transform.rotation;
             
             let local_z = transform.local_z();
-            let forward = -Vec3::new(local_z.x, 0., local_z.z);
-            let right = Vec3::new(local_z.z, 0., -local_z.x);
+            let forward = -Vec3::new(local_z.x, 0., local_z.z).normalize();
+            let right = Vec3::new(local_z.z, 0., -local_z.x).normalize();
 
             for key in keys.get_pressed() {
                 if window.cursor_locked() {

@@ -3,8 +3,9 @@ mod chunk;
 mod generator;
 mod texture;
 mod worldgen;
+mod block_data;
 
-use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::FilterMode, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
+use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::{FilterMode, Texture}, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
 use chunk::*;
 use futures_lite::future;
 
@@ -14,7 +15,7 @@ pub use worldgen::Worldgen;
 pub use worldgen::ChunkMap;
 pub use chunk::*;
 
-use self::{generator::TerrainGenerator, texture::TextureMapInfo};
+use self::{generator::TerrainGenerator, texture::{TextureMapInfo, TextureMapHandle, load_texture_map_info}, block_data::load_block_data};
 
 pub type ChunkCoord = IVec3;
 pub type BlockCoord = IVec3;
@@ -38,7 +39,9 @@ pub struct WorldLoaderPlugin;
 
 impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup);
+        app.add_startup_system_to_stage(StartupStage::PreStartup, setup);
+        app.add_startup_system_to_stage(StartupStage::PreStartup, load_block_data);
+        app.add_startup_system_to_stage(StartupStage::Startup, load_texture_map_info);
         app.add_system_to_stage(CoreStage::PreUpdate, scan_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, queue_mesh_rebuild);
         app.add_system_to_stage(CoreStage::PreUpdate, build_chunks);
@@ -47,7 +50,7 @@ impl Plugin for WorldLoaderPlugin {
         app.add_system_to_stage("Unload", unload_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, unload_meshes);
         app.add_system(when_texture_loads);
-        app.insert_resource(Worldgen::new(texture::load_texture_map_info((512,512)), 0));
+        app.insert_resource(Worldgen::new(0));
     }
 }
 
@@ -56,8 +59,7 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     let texture_handle: Handle<Image> = asset_server.load("map.png");
-
-    commands.insert_resource(texture_handle);
+    commands.insert_resource(TextureMapHandle(texture_handle));
 
     let render_distance = RenderDistance::default();
     commands.spawn().insert(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
@@ -115,10 +117,11 @@ fn build_meshes(
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<StandardMaterial>>,
     commands: Commands,
-    texture_map: Res<Handle<Image>>,
+    texture_map: Res<TextureMapHandle>,
+    texture_map_info: Res<TextureMapInfo>,
     mut worldgen: ResMut<Worldgen>,
 ) {
-    worldgen.build_meshes(scanner, meshes, materials, commands, texture_map);
+    worldgen.build_meshes(scanner, meshes, materials, commands, texture_map, texture_map_info);
 }
 
 fn unload_chunks(

@@ -21,7 +21,7 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_plugin(DebugPlugin)
         // .add_plugin(LogDiagnosticsPlugin::default())
-        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(Msaa { samples: 4 })
         .run();    
 }
@@ -35,5 +35,5 @@ fn init_settings(
     // window.set_cursor_lock_mode(true);
     // window.set_cursor_visibility(false);
     
-    move_settings.speed = 10.0;
+    move_settings.speed = 4.317;
 }

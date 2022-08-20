@@ -6,16 +6,14 @@ pub type ChunkMap = HashMap<ChunkCoord, Chunk>;
 pub struct Worldgen {
     chunk_map: ChunkMap,
     mesh_map: HashMap<ChunkCoord, Handle<Mesh>>,
-    texture_map_info: TextureMapInfo,
     generator: TerrainGenerator,
     needs_mesh_build: HashSet<ChunkCoord>,
     needs_chunk_build: HashSet<ChunkCoord>,
 }
 
 impl Worldgen {
-    pub fn new(texture_map_info: TextureMapInfo, seed: u32) -> Self {
+    pub fn new(seed: u32) -> Self {
         Self {
-            texture_map_info,
             generator: TerrainGenerator::new(seed),
             chunk_map: Default::default(),
             mesh_map: Default::default(),
@@ -63,7 +61,8 @@ impl Worldgen {
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
         mut commands: Commands,
-        texture_map: Res<Handle<Image>>,
+        texture_map: Res<TextureMapHandle>,
+        texture_map_info: Res<TextureMapInfo>
     ) {
         
         let pool = AsyncComputeTaskPool::get();
@@ -72,7 +71,7 @@ impl Worldgen {
                 if let Some(chunk) = self.chunk_map.get(&coord) {
                     if !chunk.is_empty() && scanner.single().should_load_mesh(coord) {
                         if let Some(neighbors) = get_neighbors_data(&self.chunk_map, *coord) {
-                            let info = &self.texture_map_info.info;
+                            let info = &texture_map_info.0;
                             let data = chunk.get_data().as_ref().unwrap();
                             let coord = coord.clone();
                             scope.spawn(async move {
@@ -99,23 +98,18 @@ impl Worldgen {
             }
             let mesh_handle = meshes.add(mesh);
             self.mesh_map.insert(coord, mesh_handle.clone());
-            // commands.spawn().insert_bundle((
-            //     mesh_handle,
-            //     Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
-            //     GlobalTransform::default(),
-            //     Visibility::default(),
-            //     ComputedVisibility::default(),
-            // ));
+
             commands.spawn_bundle(MaterialMeshBundle {
                 mesh: mesh_handle,
                 material: materials.add(StandardMaterial {
                     base_color: Color::WHITE,//Color::rgb(0.08, 0.87, 0.09),
-                    base_color_texture: Some(texture_map.clone()),
+                    base_color_texture: Some(texture_map.0.clone()),
                     ..default()
                 }),
                 transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
                 ..default()
             });
+
             self.chunk_map.get_mut(&coord).unwrap().set_updated();
         }
     }
