@@ -26,7 +26,7 @@ impl Default for MovementSettings {
         Self {
             sensitivity: 0.00012,
             speed: 12.,
-            jump_power: 425.,
+            jump_power: 6.,
         }
     }
 }
@@ -83,7 +83,7 @@ fn player_input(
                         KeyCode::A => delta += -right,
                         KeyCode::D => delta += right,
                         KeyCode::Space => if jumper.0 {
-                            movement.velocity += Vec3::Y * time.delta_seconds() * settings.jump_power;
+                            movement.velocity += Vec3::Y * settings.jump_power;
                             jumper.0 = false;
                         },
                         _ => (),

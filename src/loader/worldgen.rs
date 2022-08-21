@@ -142,14 +142,11 @@ impl Worldgen {
             (y as f32 / CHUNK_SIZE.1 as f32).floor() as i32,
             (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
         );
-        match self.chunk_map.get(&chunk_coord) {
-            None => {println!("CHUNK NOT FOUND {}", chunk_coord); None},
-            Some(chunk) => chunk.get_block((
-                (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
-                (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
-                (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
-            )),
-        }
+        self.chunk_map.get(&chunk_coord).and_then(|chunk| chunk.get_block((
+            (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
+            (y - chunk_coord.y * CHUNK_SIZE.1 as i32) as usize,
+            (z - chunk_coord.z * CHUNK_SIZE.2 as i32) as usize,
+        )))
     }
 
     pub fn set_block(&mut self, coord: &BlockCoord, block: Block) {
@@ -178,6 +175,10 @@ impl Worldgen {
         neighbors.into_iter().for_each(|coord| if let Some(chunk) = self.chunk_map.get_mut(&coord) {
             chunk.request_update();
         });
+    }
+
+    pub fn loaded_chunk_count(&self) -> usize {
+        self.chunk_map.len()
     }
 }
 

@@ -116,7 +116,9 @@ fn player_move(
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     let (mut transform, mut movement, mut jumper) = query.single_mut();
-    movement.velocity -= Vec3::Y * 16. * time.delta_seconds();
+    if worldgen.loaded_chunk_count() > 5000 {
+        movement.velocity -= Vec3::Y * 16. * time.delta_seconds();
+    }
     let velo = movement.velocity;
     movement.delta += velo * time.delta_seconds();
 
