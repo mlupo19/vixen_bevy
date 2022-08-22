@@ -75,13 +75,13 @@ impl Miner {
 }
 
 impl Builder {
-    pub fn can_build(&mut self) -> bool {
+    pub fn can_build(&self) -> bool {
         let now = Instant::now();
-        if (now - self.0).as_millis() > 200 {
-            self.0 = now;
-            return true;
-        }
-        false
+        (now - self.0).as_millis() > 225 
+    }
+
+    pub fn update(&mut self) {
+        self.0 = Instant::now();
     }
 }
 

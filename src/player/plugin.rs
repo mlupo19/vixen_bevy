@@ -67,6 +67,7 @@ fn build(
 
     // Check if player is trying to build
     if mouse_input.just_pressed(MouseButton::Right) || (mouse_input.pressed(MouseButton::Right) && builder.can_build()) {
+        builder.update();
         let range = 5.0;
         let translation = &transform.translation;
         let coord = cast_ray_in_front(vec3(translation.x, translation.y, translation.z), range, transform.forward(), &worldgen);
@@ -138,7 +139,7 @@ fn player_move(
 }
 
 fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper) {
-    const EPSILON: f32 = 0.0001;
+    const EPSILON: f32 = 0.001;
 
     let extended = aabb.extend(&movement.delta);
     let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &extended).collect();
