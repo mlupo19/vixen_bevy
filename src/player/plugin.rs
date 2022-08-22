@@ -1,16 +1,17 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
 
-use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
+use crate::{loader::{ChunkScanner, Worldgen, BlockCoord, block_data::get_durability}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
 use crate::player::Block;
 
-use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle, Jumper};
+use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle, Jumper, Gravity};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(PlayerCameraPlugin);
-        app.add_system(mine_and_build);
+        app.add_system(mine);
+        app.add_system(build);
         app.add_system(update_scanner);
         app.add_system(player_move);
         app.add_startup_system_to_stage(StartupStage::PostStartup, setup);
@@ -37,14 +38,14 @@ fn setup(
     });
 }
 
-fn mine_and_build(
+fn mine(
     mouse_input: Res<Input<MouseButton>>,
     time: Res<Time>,
     camera_transform: Query<&Transform, With<Camera3d>>,
     mut worldgen: ResMut<Worldgen>,
-    mut query: Query<(&mut Builder, &mut Miner), With<Player>>,
+    mut query: Query<&mut Miner, With<Player>>,
 ) {
-    let (mut builder, mut miner) = query.single_mut();
+    let mut miner = query.single_mut();
     let transform = camera_transform.single();
     
     // Check if player is trying to mine
@@ -53,18 +54,26 @@ fn mine_and_build(
         let coord = cast_ray(transform.translation, range, transform.forward(), &worldgen);
         miner.mine(&coord, time.delta().as_secs_f32(), 10.0, &mut worldgen);
     }
+}
+
+fn build(
+    mouse_input: Res<Input<MouseButton>>,
+    camera_transform: Query<&Transform, With<Camera3d>>,
+    mut worldgen: ResMut<Worldgen>,
+    mut query: Query<&mut Builder>
+) {
+    let transform = camera_transform.single();
+    let mut builder = query.single_mut();
 
     // Check if player is trying to build
-    if mouse_input.pressed(MouseButton::Right) {
-        if builder.can_build() {
-            let range = 5.0;
-            let translation = &transform.translation;
-            let coord = cast_ray_in_front(vec3(translation.x, translation.y, translation.z), range, transform.forward(), &worldgen);
-            if let Some(coord) = coord {
-                if coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32, translation.z.floor() as i32)
-                && coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32 - 1, translation.z.floor() as i32) {
-                    worldgen.set_block(&coord, Block::new(1, 5.0));
-                }
+    if mouse_input.just_pressed(MouseButton::Right) || (mouse_input.pressed(MouseButton::Right) && builder.can_build()) {
+        let range = 5.0;
+        let translation = &transform.translation;
+        let coord = cast_ray_in_front(vec3(translation.x, translation.y, translation.z), range, transform.forward(), &worldgen);
+        if let Some(coord) = coord {
+            if coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32, translation.z.floor() as i32)
+            && coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32 - 1, translation.z.floor() as i32) {
+                worldgen.set_block(&coord, Block::new(1, get_durability(1)));
             }
         }
     }
@@ -112,27 +121,27 @@ fn update_scanner(
 fn player_move(
     time: Res<Time>,
     worldgen: Res<Worldgen>,
-    mut query: Query<(&mut Transform, &mut Movement, &mut Jumper), With<Player>>,
+    mut query: Query<(&mut Transform, &mut Movement, &mut Jumper), (With<Player>, With<Gravity>)>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
-    let (mut transform, mut movement, mut jumper) = query.single_mut();
-    if worldgen.loaded_chunk_count() > 5000 {
+    if let Ok((mut transform, mut movement, mut jumper)) = query.get_single_mut() {
         movement.velocity -= Vec3::Y * 16. * time.delta_seconds();
+        let velo = movement.velocity;
+        movement.delta += velo * time.delta_seconds();
+
+        resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper);
+
+        transform.translation += movement.delta;
+        movement.delta = Vec3::ZERO;
+        camera_query.single_mut().translation = transform.translation + Vec3::new(0.0,1.5,0.0);
     }
-    let velo = movement.velocity;
-    movement.delta += velo * time.delta_seconds();
-
-    resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper);
-
-    transform.translation += movement.delta;
-    movement.delta = Vec3::ZERO;
-    camera_query.single_mut().translation = transform.translation + Vec3::new(0.0,1.5,0.0);
 }
 
 fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper) {
     const EPSILON: f32 = 0.0001;
 
-    let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &aabb.clone()).collect();
+    let extended = aabb.extend(&movement.delta);
+    let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &extended).collect();
     
     let mut collisions_remain = true;
     while collisions_remain {

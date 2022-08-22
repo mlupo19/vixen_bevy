@@ -93,3 +93,6 @@ impl Default for Builder {
 
 #[derive(Component)]
 pub struct Jumper(pub bool);
+
+#[derive(Component)]
+pub struct Gravity;

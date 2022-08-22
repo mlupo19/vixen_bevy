@@ -3,7 +3,8 @@ mod chunk;
 mod generator;
 mod texture;
 mod worldgen;
-mod block_data;
+pub mod block_data;
+mod tool_data;
 
 use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::{FilterMode, Texture}, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
 use chunk::*;
@@ -14,6 +15,8 @@ pub use scanner::ChunkScanner;
 pub use worldgen::Worldgen;
 pub use worldgen::ChunkMap;
 pub use chunk::*;
+
+use crate::player::{Player, Gravity};
 
 use self::{generator::TerrainGenerator, texture::{TextureMapInfo, TextureMapHandle, load_texture_map_info}, block_data::load_block_data};
 
@@ -40,7 +43,6 @@ pub struct WorldLoaderPlugin;
 impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system_to_stage(StartupStage::PreStartup, setup);
-        app.add_startup_system_to_stage(StartupStage::PreStartup, load_block_data);
         app.add_startup_system_to_stage(StartupStage::Startup, load_texture_map_info);
         app.add_system_to_stage(CoreStage::PreUpdate, scan_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, queue_mesh_rebuild);
@@ -50,6 +52,7 @@ impl Plugin for WorldLoaderPlugin {
         app.add_system_to_stage("Unload", unload_chunks);
         app.add_system_to_stage(CoreStage::PreUpdate, unload_meshes);
         app.add_system(when_texture_loads);
+        app.add_system(start_gravity);
         app.insert_resource(Worldgen::new(0));
     }
 }
@@ -173,7 +176,7 @@ fn when_texture_loads(
             AssetEvent::Created { handle } => {
                 texture.get_mut(handle).unwrap().sampler_descriptor = ImageSampler::nearest();
                 if let Descriptor(ref mut desc) = texture.get_mut(handle).unwrap().sampler_descriptor {
-                    desc.min_filter = FilterMode::Nearest;
+                    desc.min_filter = FilterMode::Linear;
                     desc.anisotropy_clamp = std::num::NonZeroU8::new(16);
                     desc.mipmap_filter = FilterMode::Linear;
                     desc.mag_filter = FilterMode::Nearest;
@@ -191,4 +194,14 @@ fn to_chunk_coord(world_coord: &Vec3) -> ChunkCoord {
 
 fn to_world_coord(chunk_coord: &ChunkCoord) -> Vec3 {
     vec3((chunk_coord.x * CHUNK_SIZE.0 as i32) as f32, (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32, (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32)
+}
+
+fn start_gravity(
+    query: Query<Entity, With<Player>>,
+    worldgen: Res<Worldgen>,
+    mut commands: Commands
+) {
+    if worldgen.loaded_chunk_count() > 5000 {
+        commands.entity(query.single()).insert(Gravity);
+    }
 }

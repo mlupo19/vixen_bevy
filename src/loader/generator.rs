@@ -1,7 +1,7 @@
 use bevy::math::IVec3;
 use noise::{Perlin, Seedable, NoiseFn};
 
-use super::chunk::{Chunk, CHUNK_SIZE, Block};
+use super::{chunk::{Chunk, CHUNK_SIZE, Block}, block_data::{BLOCK_DATA, get_durability}};
 
 #[derive(Clone)]
 pub struct TerrainGenerator {
@@ -52,11 +52,24 @@ impl TerrainGenerator {
                 for k in 0..CHUNK_SIZE.2 {
                     if heights[(i, k)] > (j as i32 + y * CHUNK_SIZE.1 as i32) {
                         let id = match j as i32 + y * CHUNK_SIZE.1 as i32 {
+                            // Grass layer
                             height if heights[(i,k)] - height == 1 => 1,
+                            // Dirt layer
                             height if heights[(i,k)] - height < 5 => 2,
+                            // Stone layer
                             _ => 3
                         };
-                        out.set_block((i, j, k), Block::new(id, 5.0));
+                        out.set_block((i, j, k), Block::new(id, get_durability(id)));
+                    } else if heights[(i, k)] == (j as i32 + y * CHUNK_SIZE.1 as i32) {
+                        // Generate tree (0.1% chance)
+                        if rand::random::<f32>() < 0.001 {
+                            for m in 0..4 {
+                                // TODO: refactor so trees aren't cut off by chunk borderrs
+                                if j + m < CHUNK_SIZE.1 {
+                                    out.set_block((i, j + m, k), Block::new(6, get_durability(6)));
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -65,6 +78,7 @@ impl TerrainGenerator {
         (coord, out)
     }
 
+    /// Returns world seed
     pub fn get_seed(&self) -> u32 {
         self.seed
     }

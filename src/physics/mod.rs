@@ -37,6 +37,11 @@ impl AABB {
         self.min.y < other.max.y && self.max.y > other.min.y &&
         self.min.z < other.max.z && self.max.z > other.min.z
     }
+
+    pub fn extend(&self, extension: &Vec3) -> Self {
+        let (min, max) = (self.min.min(self.min + *extension), self.max.max(self.max + *extension));
+        AABB::new(min, max)
+    }
 }
 
 impl SweptCollider<AABB> for AABB {
