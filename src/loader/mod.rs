@@ -74,11 +74,11 @@ fn setup(
     commands.spawn_bundle(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 50000.0,
-            shadows_enabled: false,
+            shadows_enabled: true,
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(0.0, 10000.0, 0.0),
+            translation: Vec3::new(0.0, 0.0, 0.0),
             rotation: rot,
             ..default()
         },

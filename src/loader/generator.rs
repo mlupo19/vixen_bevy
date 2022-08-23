@@ -50,7 +50,7 @@ impl TerrainGenerator {
         for i in 0..CHUNK_SIZE.0 {
             for j in 0..CHUNK_SIZE.1 {
                 for k in 0..CHUNK_SIZE.2 {
-                    let (world_x,world_y,world_z) = (x * CHUNK_SIZE.0 as i32 + i as i32, y * CHUNK_SIZE.1 as i32 + j as i32, z * CHUNK_SIZE.2 as i32 + k as i32);
+                    // let (world_x,world_y,world_z) = (x * CHUNK_SIZE.0 as i32 + i as i32, y * CHUNK_SIZE.1 as i32 + j as i32, z * CHUNK_SIZE.2 as i32 + k as i32);
                     if heights[(i, k)] > (j as i32 + y * CHUNK_SIZE.1 as i32) {
                         let id = match j as i32 + y * CHUNK_SIZE.1 as i32 {
                             // Grass layer
@@ -67,7 +67,7 @@ impl TerrainGenerator {
                             for m in 0..4 {
                                 // TODO: refactor so trees aren't cut off by chunk borders
                                 if j + m < CHUNK_SIZE.1 {
-                                    // insert(ivec3(world_x, world_y + m as i32, world_z), Block::new(6, get_durability(6)), chunks);
+                                    out.set_block((i,j + m,k), Block::new(6, get_durability(6)));
                                 }
                             }
                         }
