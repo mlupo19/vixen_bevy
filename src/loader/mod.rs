@@ -61,7 +61,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    let texture_handle: Handle<Image> = asset_server.load("map.png");
+    let texture_handle: Handle<Image> = asset_server.load("map.dds");
     commands.insert_resource(TextureMapHandle(texture_handle));
 
     let render_distance = RenderDistance::default();

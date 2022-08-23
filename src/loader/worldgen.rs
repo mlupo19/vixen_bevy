@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use bevy::utils::HashMap;
 use crate::loader::*;
 
@@ -102,8 +104,9 @@ impl Worldgen {
             commands.spawn_bundle(MaterialMeshBundle {
                 mesh: mesh_handle,
                 material: materials.add(StandardMaterial {
-                    base_color: Color::WHITE,//Color::rgb(0.08, 0.87, 0.09),
                     base_color_texture: Some(texture_map.0.clone()),
+                    reflectance: 0.0,
+                    metallic: 0.0,
                     ..default()
                 }),
                 transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),

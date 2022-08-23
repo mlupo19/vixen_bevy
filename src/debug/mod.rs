@@ -52,9 +52,5 @@ fn window_stats(
     mut windows: ResMut<Windows>,
     keys: Res<Input<KeyCode>>,
 ) {
-    if keys.just_pressed(KeyCode::C) {
-        for window in windows.iter_mut() {
-            info!("Window scale factor: {}",window.backend_scale_factor());
-        }
-    }
+    
 }
