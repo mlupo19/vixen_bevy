@@ -424,14 +424,14 @@ impl Chunk {
 
     pub fn get_block(&self, (i, j, k): (usize, usize, usize)) -> Option<Block> {
         match &self.block_data {
-            None => Some(Block { id: 0, health: 69.0 }),
+            None => None,
             Some(data) => Some(data[(i, j, k)].clone()),
         }
     }
 
-    // pub fn get_pos(&self) -> (i32, i32, i32) {
-    //     self.position
-    // }
+    pub fn get_coord(&self) -> ChunkCoord {
+        self.coord
+    }
 
     pub fn get_data_mut(&mut self) -> &mut Option<Box<ndarray::Array3<Block>>> {
         &mut self.block_data

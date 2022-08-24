@@ -64,6 +64,14 @@
                 "axe": 2.0,
                 "hand": 0.5
             }
+        },
+        "7": {
+            "name": "oak_leaves",
+            "loc": [
+                52,52,52,52,52,52
+            ],
+            "durability": 0.3,
+            "multiplier": {}
         }
     }
 }

@@ -1,7 +1,6 @@
-use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy::{prelude::*, diagnostic::FrameTimeDiagnosticsPlugin};
 use bevy_egui::EguiPlugin;
 use debug::DebugPlugin;
-use player::player_cam::MovementSettings;
 use loader::WorldLoaderPlugin;
 use player::PlayerPlugin;
 
@@ -10,6 +9,7 @@ mod player;
 mod storage;
 mod physics;
 mod debug;
+mod util;
 
 fn main() {
     App::new()

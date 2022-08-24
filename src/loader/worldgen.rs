@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use bevy::utils::HashMap;
 use crate::loader::*;
 
@@ -24,7 +22,7 @@ impl Worldgen {
         }
     }
 
-    pub fn scan_chunks(&mut self, scanner: Query<&ChunkScanner>, mut commands: Commands,) {
+    pub fn scan_chunks(&mut self, scanner: Query<&ChunkScanner>, mut commands: Commands) {
         let pool = AsyncComputeTaskPool::get();
         for scanner in scanner.iter() {
             for chunk_coord in scanner.into_iter() {
@@ -40,10 +38,10 @@ impl Worldgen {
         }
     }
 
-    pub fn build_chunk(&mut self, coord: ChunkCoord, chunk: Chunk) {
-        self.chunk_map.insert(coord.clone(), chunk);
-        self.needs_mesh_build.insert(coord);
-        self.needs_chunk_build.remove(&coord);
+    pub fn build_chunk(&mut self, chunk_coord: ChunkCoord, chunk: Chunk) {
+        self.chunk_map.insert(chunk_coord.clone(), chunk);
+        self.needs_mesh_build.insert(chunk_coord);
+        self.needs_chunk_build.remove(&chunk_coord);
     }
 
     pub fn queue_mesh_rebuild(
@@ -160,7 +158,9 @@ impl Worldgen {
             (z as f32 / CHUNK_SIZE.2 as f32).floor() as i32,
         );
         match self.chunk_map.get_mut(&chunk_coord) {
-            None => (),
+            None => {
+                error!("Tried to set block in unloaded chunk: {:?}", chunk_coord);
+            },
             Some(chunk) => {
                 if chunk.set_block((
                     (x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,
@@ -173,7 +173,7 @@ impl Worldgen {
         }
     }
 
-    fn update_neighbors(&mut self, coord: IVec3) {
+    fn update_neighbors(&mut self, coord: ChunkCoord) {
         let neighbors = [ivec3(1,0,0) + coord, ivec3(-1,0,0) + coord, ivec3(0,-1,0) + coord, ivec3(0,1,0) + coord, ivec3(0,0,1) + coord, ivec3(0,0,-1) + coord];
         neighbors.into_iter().for_each(|coord| if let Some(chunk) = self.chunk_map.get_mut(&coord) {
             chunk.request_update();
