@@ -1,4 +1,5 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
+use bevy_atmosphere::prelude::AtmosphereCamera;
 
 use crate::{loader::{ChunkScanner, Worldgen, BlockCoord, block_data::get_durability}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
 use crate::player::Block;
@@ -14,7 +15,7 @@ impl Plugin for PlayerPlugin {
         app.add_system(build);
         app.add_system(update_scanner);
         app.add_system(player_move);
-        app.add_startup_system_to_stage(StartupStage::PostStartup, setup);
+        app.add_startup_system_to_stage(StartupStage::Startup, setup);
     }
 }
 
@@ -24,7 +25,7 @@ fn setup(
     let cam = commands.spawn().insert_bundle(Camera3dBundle {
         transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
-    }).id();
+    }).insert(AtmosphereCamera(None)).id();
 
     commands.spawn_bundle(PlayerBundle {
         transform: Transform::from_translation(Vec3::new(0.0,100.0,0.0)),

@@ -1,13 +1,17 @@
-use bevy::math::{IVec3, ivec3};
-use noise::{Perlin, Seedable, NoiseFn};
+use std::{sync::Arc, hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
 
-use super::{chunk::{Chunk, CHUNK_SIZE, Block}, block_data::get_durability};
+use bevy::{math::{IVec3, ivec3}, utils::HashMap, prelude::info};
+use noise::{Perlin, Seedable, NoiseFn};
+use rand::{SeedableRng, RngCore, Rng};
+
+use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coords};
+
+use super::{chunk::{Chunk, CHUNK_SIZE, Block}, block_data::get_durability, ChunkCoord};
 
 #[derive(Clone)]
 pub struct TerrainGenerator {
     seed: u32,
     noise: noise::Perlin,
-    sea_level: i32,
     
 }
 
@@ -18,12 +22,11 @@ impl TerrainGenerator {
         TerrainGenerator {
             seed,
             noise,
-            sea_level: 60,
         }
     }
 
     /// Generate chunk at coord (x,y,z) in chunk space
-    pub fn gen(&self, coord: IVec3) -> (IVec3, Chunk) {
+    pub fn gen(&self, coord: ChunkCoord) -> (ChunkCoord, Chunk) {
         let mut out = Chunk::empty(coord);
         let (x,y,z) = (coord.x, coord.y, coord.z);
 
@@ -51,6 +54,9 @@ impl TerrainGenerator {
             for j in 0..CHUNK_SIZE.1 {
                 for k in 0..CHUNK_SIZE.2 {
                     // let (world_x,world_y,world_z) = (x * CHUNK_SIZE.0 as i32 + i as i32, y * CHUNK_SIZE.1 as i32 + j as i32, z * CHUNK_SIZE.2 as i32 + k as i32);
+                    if out.get_block((i, j, k)).unwrap_or(Block::air()) != Block::air() {
+                        continue;
+                    }
                     if heights[(i, k)] > (j as i32 + y * CHUNK_SIZE.1 as i32) {
                         let id = match j as i32 + y * CHUNK_SIZE.1 as i32 {
                             // Grass layer
@@ -62,14 +68,25 @@ impl TerrainGenerator {
                         };
                         out.set_block((i, j, k), Block::new(id, get_durability(id)));
                     } else if heights[(i, k)] == (j as i32 + y * CHUNK_SIZE.1 as i32) {
-                        // Generate tree (0.1% chance)
-                        if rand::random::<f32>() < 0.001 {
-                            for m in 0..4 {
-                                // TODO: refactor so trees aren't cut off by chunk borders
-                                if j + m < CHUNK_SIZE.1 {
-                                    out.set_block((i,j + m,k), Block::new(6, get_durability(6)));
+                        let mut hasher = DefaultHasher::new();
+                        self.seed.hash(&mut hasher);
+                        coord.hash(&mut hasher);
+                        (i,j,k).hash(&mut hasher);
+                        let mut rand = rand::rngs::StdRng::seed_from_u64(hasher.finish());
+
+                        // Generate tree (0.05% chance)
+                        if rand.gen::<f64>() < 0.0005 {
+                            for m in 0..5 {
+                                Self::set_block(&mut out, (i as i32,j as i32 + m,k as i32), Block::new(6, get_durability(6)));
+                            }
+                            for dx in -1..=1 {
+                                for dy in 0..2 {
+                                    for dz in -1..=1 {
+                                        Self::set_block(&mut out, (i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), Block::new(7, get_durability(7)));
+                                    }
                                 }
                             }
+                            Self::set_block(&mut out, (i as i32, j as i32 + 7, k as i32), Block::new(7, get_durability(7)));
                         }
                     }
                 }
@@ -77,6 +94,16 @@ impl TerrainGenerator {
         }
 
         (coord, out)
+    }
+
+    fn set_block(chunk: &mut Chunk, coord: (i32, i32, i32), block: Block) {
+        let block_coord = chunk_local_to_block_coord(&coord, &chunk.get_coord());
+        let chunk_coord = block_to_chunk_coord(&block_coord);
+        if chunk_coord == chunk.get_coord() {
+            chunk.set_block((coord.0 as usize, coord.1 as usize, coord.2 as usize), block);
+        } else {
+            // info!("Block outside of chunk");
+        }
     }
 
     /// Returns world seed

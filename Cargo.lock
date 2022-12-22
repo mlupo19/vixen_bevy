@@ -277,6 +277,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_atmosphere"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "145e8486d53c5110d359bc2d21d6af9ffc0f87e300cf79a63af4ce2cabac4c8d"
+dependencies = [
+ "bevy",
+ "radsort",
+]
+
+[[package]]
 name = "bevy_audio"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3432,6 +3442,7 @@ name = "vixen_bevy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_atmosphere",
  "bevy_egui",
  "bevy_flycam",
  "bevy_mod_debugdump",

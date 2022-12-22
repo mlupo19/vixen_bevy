@@ -6,7 +6,8 @@ mod worldgen;
 pub mod block_data;
 mod tool_data;
 
-use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::{FilterMode, Texture}, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
+use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}, math::{ivec3, vec3}, render::{render_resource::FilterMode, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
+use bevy_atmosphere::prelude::AtmospherePlugin;
 use chunk::*;
 use futures_lite::future;
 
@@ -18,7 +19,7 @@ pub use chunk::*;
 
 use crate::player::{Player, Gravity};
 
-use self::{generator::TerrainGenerator, texture::{TextureMapInfo, TextureMapHandle, load_texture_map_info}, block_data::load_block_data};
+use self::{generator::TerrainGenerator, texture::{TextureMapInfo, TextureMapHandle, load_texture_map_info}};
 
 pub type ChunkCoord = IVec3;
 pub type BlockCoord = IVec3;
@@ -42,6 +43,7 @@ pub struct WorldLoaderPlugin;
 
 impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugin(AtmospherePlugin);
         app.add_startup_system_to_stage(StartupStage::PreStartup, setup);
         app.add_startup_system_to_stage(StartupStage::Startup, load_texture_map_info);
         app.add_system_to_stage(CoreStage::PreUpdate, scan_chunks);
@@ -70,6 +72,7 @@ fn setup(
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);
     rot = rot.mul_quat(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_6));
+    
     // light
     commands.spawn_bundle(DirectionalLightBundle {
         directional_light: DirectionalLight {
