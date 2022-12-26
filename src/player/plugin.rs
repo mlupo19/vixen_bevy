@@ -140,8 +140,6 @@ fn player_move(
 }
 
 fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper) {
-    const EPSILON: f32 = 0.001;
-
     let extended = aabb.extend(&movement.delta);
     let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &extended).collect();
     
@@ -157,17 +155,32 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
                 if collision_time < nearest_collision {
                     nearest_collision = collision_time;
                     nearest_collision_tangent = tangent;
-
-                    if tangent.y == 0.0 {
-                        jumper.0 = true;
-                    }
                 }
                 collisions_remain = true;
             }
         }
+        
+        // Reset velocity when hit block
+        if collisions_remain {
+            if nearest_collision_tangent.x == 0.0 {
+                movement.velocity.x = 0.0;
+            }
+            if nearest_collision_tangent.y == 0.0 {
+                movement.velocity.y = 0.0;
 
-        // Stop movement when hit wall, with epsilon to keep from getting stuck
-        movement.delta *= nearest_collision - EPSILON;
+                // Only reset jump if we hit the ground
+                if movement.delta.y.signum() < 0.0 {
+                    jumper.0 = true;
+                }
+            }
+            if nearest_collision_tangent.z == 0.0 {
+                movement.velocity.z = 0.0;
+            }
+        }
+
+        // Stop movement when hit block
+        movement.delta *= nearest_collision;
+
 
         // Slide against wall
         let remaining_time = 1.0 - nearest_collision;

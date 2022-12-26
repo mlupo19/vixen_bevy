@@ -68,9 +68,9 @@ impl SweptCollider<AABB> for AABB {
         } else {
             collide_time = entry_time;
             _normal = match entry_time {
-                t if t == tx.0 => {tangent.x = 0.0; movement.velocity.x = 0.0; vec3(-1.0, 0.0, 0.0) * tx.2.signum()},
-                t if t == ty.0 => {tangent.y = 0.0; movement.velocity.y = 0.0; vec3(0.0, -1.0, 0.0) * ty.2.signum()},
-                t if t == tz.0 => {tangent.z = 0.0; movement.velocity.z = 0.0; vec3(0.0, 0.0, -1.0) * tz.2.signum()},
+                t if t == tx.0 => {tangent.x = 0.0; vec3(-1.0, 0.0, 0.0) * tx.2.signum()},
+                t if t == ty.0 => {tangent.y = 0.0; vec3(0.0, -1.0, 0.0) * ty.2.signum()},
+                t if t == tz.0 => {tangent.z = 0.0; vec3(0.0, 0.0, -1.0) * tz.2.signum()},
                 _ => unreachable!("entry_time != x, y, or z entry time"),
             };
             Some((collide_time, tangent))
