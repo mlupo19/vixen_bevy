@@ -1,7 +1,7 @@
 use bevy::utils::HashMap;
 use ndarray::Array3;
 
-use super::{MeshData, ChunkCoord};
+use super::{MeshData, ChunkCoord, block_data::get_durability};
 pub const CHUNK_SIZE: (usize, usize, usize) = (32, 32, 32);
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -11,10 +11,10 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(id: u16, health: f32) -> Block {
+    pub fn new(id: u16) -> Block {
         Block {
             id,
-            health,
+            health: get_durability(id),
         }
     }
 

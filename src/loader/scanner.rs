@@ -2,7 +2,7 @@ use bevy::{math::*, prelude::Component};
 
 use crate::loader::{to_chunk_coord, to_world_coord};
 
-use super::{chunk::CHUNK_SIZE, ChunkCoord};
+use super::ChunkCoord;
 
 #[derive(Component, Clone, Copy)]
 pub struct ChunkScanner {

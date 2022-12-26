@@ -1,12 +1,11 @@
-use std::{sync::Arc, hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
+use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher};
 
-use bevy::{math::{IVec3, ivec3}, utils::HashMap, prelude::info};
 use noise::{Perlin, Seedable, NoiseFn};
-use rand::{SeedableRng, RngCore, Rng};
+use rand::{SeedableRng, Rng};
 
-use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coords};
+use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord};
 
-use super::{chunk::{Chunk, CHUNK_SIZE, Block}, block_data::get_durability, ChunkCoord};
+use super::{chunk::{Chunk, CHUNK_SIZE, Block}, ChunkCoord};
 
 #[derive(Clone)]
 pub struct TerrainGenerator {
@@ -66,7 +65,7 @@ impl TerrainGenerator {
                             // Stone layer
                             _ => 3
                         };
-                        out.set_block((i, j, k), Block::new(id, get_durability(id)));
+                        out.set_block((i, j, k), Block::new(id));
                     } else if heights[(i, k)] == (j as i32 + y * CHUNK_SIZE.1 as i32) {
                         let mut hasher = DefaultHasher::new();
                         self.seed.hash(&mut hasher);
@@ -77,16 +76,25 @@ impl TerrainGenerator {
                         // Generate tree (0.05% chance)
                         if rand.gen::<f64>() < 0.0005 {
                             for m in 0..5 {
-                                Self::set_block(&mut out, (i as i32,j as i32 + m,k as i32), Block::new(6, get_durability(6)));
+                                Self::set_block(&mut out, (i as i32,j as i32 + m,k as i32), Block::new(6));
                             }
                             for dx in -1..=1 {
                                 for dy in 0..2 {
                                     for dz in -1..=1 {
-                                        Self::set_block(&mut out, (i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), Block::new(7, get_durability(7)));
+                                        Self::set_block(&mut out, (i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), Block::new(7));
                                     }
                                 }
                             }
-                            Self::set_block(&mut out, (i as i32, j as i32 + 7, k as i32), Block::new(7, get_durability(7)));
+                            Self::set_block(&mut out, (i as i32, j as i32 + 7, k as i32), Block::new(7));
+                        }
+
+                        // Generate structure
+                        if rand.gen::<f64>() < 0.0002 {
+                            for m in 0..10 {
+                                Self::set_block(&mut out, (i as i32,j as i32 + m,k as i32), Block::new(5));
+                            }
+                            Self::set_block(&mut out, (i as i32 - 1,j as i32,k as i32), Block::new(5));
+                            Self::set_block(&mut out, (i as i32 + 1,j as i32,k as i32), Block::new(5));
                         }
                     }
                 }

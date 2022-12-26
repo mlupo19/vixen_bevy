@@ -1,7 +1,7 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
 use bevy_atmosphere::prelude::AtmosphereCamera;
 
-use crate::{loader::{ChunkScanner, Worldgen, BlockCoord, block_data::get_durability}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
+use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
 use crate::player::Block;
 
 use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle, Jumper, Gravity};
@@ -75,7 +75,7 @@ fn build(
         if let Some(coord) = coord {
             if coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32, translation.z.floor() as i32)
             && coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32 - 1, translation.z.floor() as i32) {
-                worldgen.set_block(&coord, Block::new(1, get_durability(1)));
+                worldgen.set_block(&coord, Block::new(1));
             }
         }
     }
