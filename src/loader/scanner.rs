@@ -24,15 +24,24 @@ impl ChunkScanner {
         center.x.abs_diff(pos.x) > self.range.into() || center.y.abs_diff(pos.y) > self.range.into() || center.z.abs_diff(pos.z) > self.range.into()
     }
 
+    pub fn should_unload_unfinished_chunk(&self, pos: &ChunkCoord) -> bool {
+        let center = to_chunk_coord(&self.center);
+        center.x.abs_diff(pos.x) > self.range as u32 + 3 || center.y.abs_diff(pos.y) > self.range as u32 + 3 || center.z.abs_diff(pos.z) > self.range as u32 + 3
+    }
+
     pub fn should_load_mesh(&self, pos: &ChunkCoord) -> bool {
         let pos = to_world_coord(pos);
         let lhs: f32 = (pos.x - self.center.x).powf(2.0) + (pos.y - self.center.y).powf(2.0) + (pos.z - self.center.z).powf(2.0);
-        let rhs: f32 = ((self.range - 1) as usize * 32).pow(2) as f32;
+        let rhs: f32 = (self.range as usize * 32).pow(2) as f32;
         lhs <= rhs
     }
 
     pub fn get_center(&self) -> ChunkCoord {
         self.center.floor().as_ivec3()
+    }
+
+    pub fn range(&self) -> u16 {
+        self.range
     }
 }
 

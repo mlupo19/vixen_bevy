@@ -67,9 +67,11 @@ impl Faces {
     };
 }
 
+pub type ChunkData = Option<Box<ndarray::Array3<Block>>>;
+
 pub struct Chunk {
     coord: ChunkCoord,
-    block_data: Option<Box<ndarray::Array3<Block>>>,
+    block_data: ChunkData,
     needs_update: bool,
 }
 
@@ -90,10 +92,10 @@ impl Chunk {
         }
     }
 
-    pub fn from_data(coord: ChunkCoord, data: Array3<Block>) -> Chunk {
+    pub fn from_data(coord: ChunkCoord, data: Box<Array3<Block>>) -> Chunk {
         Chunk {
             coord,
-            block_data: Some(Box::new(data)),
+            block_data: Some(data),
             needs_update: true,
         }
     }

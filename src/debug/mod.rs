@@ -25,6 +25,7 @@ fn player_ui(
             ui.label(format!("Position: {}", transform.translation));
             ui.label(format!("Velocity: {}", movement.velocity));
             ui.label(format!("Facing: {}", camera_query.single().forward()));
+            ui.label(format!("Chunk: {}", (transform.translation / 32.).floor()));
             ui.set_min_width(50.);
             ui.set_max_width(250.);
         });

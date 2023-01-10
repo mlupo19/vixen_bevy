@@ -20,7 +20,7 @@ pub fn chunk_local_to_block_coord(local_chunk_coord: &(i32, i32, i32), chunk_coo
 }
 
 #[inline]
-pub fn block_to_chunk_local_coords(block_coord: &IVec3) -> (usize, usize, usize) {
+pub fn block_to_chunk_local_coord(block_coord: &IVec3) -> (usize, usize, usize) {
     let chunk_coord = block_to_chunk_coord(block_coord);
     (
         (block_coord.x - chunk_coord.x * CHUNK_SIZE.0 as i32) as usize,

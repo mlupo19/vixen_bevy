@@ -22,12 +22,12 @@ impl Plugin for PlayerPlugin {
 fn setup(
     mut commands: Commands,
 ) {
-    let cam = commands.spawn().insert_bundle(Camera3dBundle {
+    let cam = commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
-    }).insert(AtmosphereCamera(None)).id();
+    }).insert(AtmosphereCamera::default()).id();
 
-    commands.spawn_bundle(PlayerBundle {
+    commands.spawn(PlayerBundle {
         transform: Transform::from_translation(Vec3::new(0.0,100.0,0.0)),
         movement: Movement::default(),
         miner: Miner::default(),

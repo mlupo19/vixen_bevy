@@ -1,9 +1,11 @@
-use bevy::{utils::HashMap, prelude::{Handle, Image, Commands}};
+use bevy::{utils::HashMap, prelude::{Handle, Image, Commands, Resource}};
 
 use super::block_data::{RAW_BLOCK_DATA, TEXTURE_MAP_GRID_SIZE};
 
+#[derive(Resource)]
 pub struct TextureMapHandle(pub Handle<Image>);
 
+#[derive(Resource)]
 pub struct TextureMapInfo(pub HashMap<u16, [[[u32;2];4];6]>);
 
 pub fn load_texture_map_info(

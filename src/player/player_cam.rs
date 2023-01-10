@@ -1,13 +1,14 @@
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
+use bevy::window::CursorGrabMode;
 
 use crate::physics::Movement;
 
 use super::{Player, Jumper};
 
 /// Keeps track of mouse motion events, pitch, and yaw
-#[derive(Default)]
+#[derive(Default, Resource)]
 struct InputState {
     reader_motion: ManualEventReader<MouseMotion>,
     pitch: f32,
@@ -15,6 +16,7 @@ struct InputState {
 }
 
 /// Mouse sensitivity and movement speed
+#[derive(Resource)]
 pub struct MovementSettings {
     pub sensitivity: f32,
     pub speed: f32,
@@ -43,7 +45,11 @@ impl PlayerCam {
 
 /// Grabs/ungrabs mouse cursor
 fn toggle_grab_cursor(window: &mut Window) {
-    window.set_cursor_lock_mode(!window.cursor_locked());
+    window.set_cursor_grab_mode(match window.cursor_grab_mode() {
+        CursorGrabMode::None => CursorGrabMode::Confined,
+        CursorGrabMode::Confined => CursorGrabMode::None,
+        CursorGrabMode::Locked => CursorGrabMode::None,
+    });
     window.set_cursor_visibility(!window.cursor_visible());
 }
 
@@ -76,7 +82,7 @@ fn player_input(
             let right = Vec3::new(local_z.z, 0., -local_z.x).normalize();
 
             for key in keys.get_pressed() {
-                if window.cursor_locked() {
+                if let CursorGrabMode::Confined = window.cursor_grab_mode() {
                     match key {
                         KeyCode::W => delta += forward,
                         KeyCode::S => delta += -forward,
@@ -110,7 +116,7 @@ fn player_look(
         let mut delta_state = state.as_mut();
         for mut transform in query.iter_mut() {
             for ev in delta_state.reader_motion.iter(&motion) {
-                if window.cursor_locked() {
+                if let CursorGrabMode::Confined = window.cursor_grab_mode() {
                     // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                     let window_scale = window.height().min(window.width());
                     delta_state.pitch -=
@@ -143,7 +149,7 @@ fn cursor_grab(keys: Res<Input<KeyCode>>, mut windows: ResMut<Windows>) {
 
 fn lock_cursor_position(mut windows: ResMut<Windows>) {
 	if let Some(window) = windows.get_primary_mut() {
-        if window.cursor_locked() {
+        if let CursorGrabMode::Confined = window.cursor_grab_mode() {
 		    window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
         }
 	}

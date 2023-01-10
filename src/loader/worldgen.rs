@@ -1,24 +1,30 @@
+use std::sync::Arc;
+
 use bevy::utils::HashMap;
+use dashmap::DashMap;
 use crate::loader::*;
 
 pub type ChunkMap = HashMap<ChunkCoord, Chunk>;
 
+#[derive(Resource)]
 pub struct Worldgen {
     chunk_map: ChunkMap,
     mesh_map: HashMap<ChunkCoord, Handle<Mesh>>,
-    generator: TerrainGenerator,
+    generator: Arc<TerrainGenerator>,
     needs_mesh_build: HashSet<ChunkCoord>,
-    needs_chunk_build: HashSet<ChunkCoord>,
+    needs_chunk_build: HashSet<ChunkCoord>, 
+    in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>,
 }
 
 impl Worldgen {
     pub fn new(seed: u32) -> Self {
         Self {
-            generator: TerrainGenerator::new(seed),
+            generator: Arc::new(TerrainGenerator::new(seed)),
             chunk_map: Default::default(),
             mesh_map: Default::default(),
             needs_mesh_build: Default::default(),
             needs_chunk_build: Default::default(),
+            in_progress: Arc::new(DashMap::new()),
         }
     }
 
@@ -29,10 +35,25 @@ impl Worldgen {
                 if !self.chunk_map.contains_key(&chunk_coord) && !self.needs_chunk_build.contains(&chunk_coord) {
                     self.needs_chunk_build.insert(chunk_coord.clone());
                     let generator = self.generator.clone();
+                    let in_progress = self.in_progress.clone();
+
+                    let mut loaded = 0u32;
+                    let mut c = 0;
+                    for x in (chunk_coord.x-1)..(chunk_coord.x+1) {
+                        for y in (chunk_coord.y-1)..(chunk_coord.y+1) {
+                            for z in (chunk_coord.z-1)..(chunk_coord.z+1) {
+                                if self.chunk_map.contains_key(&ChunkCoord::new(x, y, z)) {
+                                    loaded |= 1 << c;
+                                    c += 1;
+                                }
+                            }
+                        }
+                    }
+
                     let task = pool.spawn(async move {
-                        generator.gen(chunk_coord)
+                        generator.generate_chunk(loaded, chunk_coord, in_progress)
                     });
-                    commands.spawn().insert(ChunkBuildTask(task));
+                    commands.spawn(ChunkBuildTask(task));
                 }
             }
         }
@@ -49,7 +70,7 @@ impl Worldgen {
         scanner: Query<&ChunkScanner>,
     ) {
         for (coord, chunk) in self.chunk_map.iter() {
-            if chunk.needs_update() || (scanner.single().should_load_mesh(coord) && !self.mesh_map.contains_key(coord)) {
+            if chunk.needs_update() || (!chunk.is_empty() && scanner.single().should_load_mesh(coord) && !self.mesh_map.contains_key(coord)) {
                 self.needs_mesh_build.insert(*coord);
             }
         }
@@ -64,7 +85,6 @@ impl Worldgen {
         texture_map: Res<TextureMapHandle>,
         texture_map_info: Res<TextureMapInfo>
     ) {
-        
         let pool = AsyncComputeTaskPool::get();
         let task = pool.scope(|scope| {
             self.needs_mesh_build.drain_filter(|coord| {
@@ -94,12 +114,12 @@ impl Worldgen {
     
         for (coord, mesh) in task {
             if let Some(mesh_handle) = self.mesh_map.get(&coord) {
-                meshes.remove(mesh_handle.id);
+                meshes.remove(mesh_handle);
             }
             let mesh_handle = meshes.add(mesh);
             self.mesh_map.insert(coord, mesh_handle.clone());
 
-            commands.spawn_bundle(MaterialMeshBundle {
+            commands.spawn(MaterialMeshBundle {
                 mesh: mesh_handle,
                 material: materials.add(StandardMaterial {
                     base_color_texture: Some(texture_map.0.clone()),
@@ -122,6 +142,10 @@ impl Worldgen {
         self.chunk_map.drain_filter(|coord, _chunk| {
             scanner.single().should_unload_chunk(coord)
         });
+
+        self.in_progress.retain(|coord, _| {
+            !scanner.single().should_unload_unfinished_chunk(coord)
+        });
     }
 
     pub fn unload_meshes(
@@ -132,7 +156,7 @@ impl Worldgen {
         self.mesh_map.drain_filter(|coord, _mesh| {
             !scanner.single().should_load_mesh(coord)
         }).into_iter().for_each(|(_, mesh)| {
-            meshes.remove(mesh.id);
+            meshes.remove(mesh);
         });
     }
 
@@ -212,4 +236,12 @@ fn get_neighbors_data(chunk_map: &HashMap<ChunkCoord, Chunk>, coord: IVec3) -> O
             Some(chunk) => chunk.get_data().as_ref(),
         },
     ])
+}
+
+#[derive(Debug)]
+pub struct UnfinishedChunkData {
+    pub data: Option<Box<ndarray::Array3<Block>>>,
+    pub block_list: Vec<((usize, usize, usize), Block)>,
+    pub started: bool,
+    pub finished: bool,
 }

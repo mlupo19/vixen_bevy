@@ -67,14 +67,14 @@ fn setup(
     commands.insert_resource(TextureMapHandle(texture_handle));
 
     let render_distance = RenderDistance::default();
-    commands.spawn().insert(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
+    commands.spawn(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
     commands.insert_resource(render_distance);
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);
     rot = rot.mul_quat(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_6));
     
     // light
-    commands.spawn_bundle(DirectionalLightBundle {
+    commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 50000.0,
             shadows_enabled: true,
@@ -91,8 +91,8 @@ fn setup(
 
 fn scan_chunks(
     scanner: Query<&ChunkScanner>,
-    commands: Commands,
     mut worldgen: ResMut<Worldgen>,
+    commands: Commands
 ) {
     worldgen.scan_chunks(scanner, commands);
 }
@@ -145,7 +145,7 @@ fn unload_meshes(
     worldgen.unload_meshes(scanner, meshes);
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Resource)]
 struct RenderDistance(u32);
 
 impl Default for RenderDistance {
