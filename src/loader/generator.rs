@@ -147,7 +147,7 @@ impl TerrainGenerator {
                             }
                             for dx in -1..=1 {
                                 for dy in 0..2 {
-                                    for dz in -2..=2 {
+                                    for dz in -1..=1 {
                                         self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
                                     }
                                 }

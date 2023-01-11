@@ -89,7 +89,10 @@ impl Worldgen {
         let task = pool.scope(|scope| {
             self.needs_mesh_build.drain_filter(|coord| {
                 if let Some(chunk) = self.chunk_map.get(&coord) {
-                    if !chunk.is_empty() && scanner.single().should_load_mesh(coord) {
+                    if chunk.is_empty() {
+                        return true;
+                    }
+                    if scanner.single().should_load_mesh(coord) {
                         if let Some(neighbors) = get_neighbors_data(&self.chunk_map, *coord) {
                             let info = &texture_map_info.0;
                             let data = chunk.get_data().as_ref().unwrap();
