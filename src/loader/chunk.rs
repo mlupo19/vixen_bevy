@@ -176,22 +176,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::RIGHT,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::RIGHT,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -216,22 +216,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::LEFT,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::LEFT,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -256,22 +256,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BOTTOM,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BOTTOM,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -296,22 +296,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::TOP,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::TOP,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -336,22 +336,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::FRONT,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::FRONT,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -376,22 +376,22 @@ impl Chunk {
                                         == 0
                                 {
                                     Chunk::add_face(
-                                        &block_data,
+                                        block_data,
                                         &mut vertex_data,
                                         &mut indices,
                                         (i, j, k),
                                         Faces::BACK,
-                                        &texture_map_info,
+                                        texture_map_info,
                                     );
                                 }
                             } else {
                                 Chunk::add_face(
-                                    &block_data,
+                                    block_data,
                                     &mut vertex_data,
                                     &mut indices,
                                     (i, j, k),
                                     Faces::BACK,
-                                    &texture_map_info,
+                                    texture_map_info,
                                 );
                             }
                         }
@@ -425,10 +425,7 @@ impl Chunk {
     }
 
     pub fn get_block(&self, (i, j, k): (usize, usize, usize)) -> Option<Block> {
-        match &self.block_data {
-            None => None,
-            Some(data) => Some(data[(i, j, k)].clone()),
-        }
+        self.block_data.as_ref().map(|data| data[(i, j, k)].clone())
     }
 
     pub fn get_coord(&self) -> ChunkCoord {

@@ -46,7 +46,7 @@ impl AABB {
 
 impl SweptCollider<AABB> for AABB {
     fn swept_collide(&self, other: &AABB, movement: &mut Movement) -> Option<(f32, Vec3)> {
-        if !self.might_collide(other, &movement) {
+        if !self.might_collide(other, movement) {
             return None;
         }
 

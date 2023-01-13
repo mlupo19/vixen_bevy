@@ -143,32 +143,32 @@ impl TerrainGenerator {
                         // Generate tree (0.05% chance)
                         if rand.gen::<f64>() < 0.0005 {
                             for m in 0..5 {
-                                self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());
+                                set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());
                             }
                             for dx in -1..=1 {
                                 for dy in 0..2 {
                                     for dz in -1..=1 {
-                                        self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
+                                        set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
                                     }
                                 }
                             }
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + 7, k as i32), &coord), Block::new(7),  in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + 7, k as i32), &coord), Block::new(7),  in_progress.clone());
                         }
 
                         // Generate structure
                         if rand.gen::<f64>() < 0.0002 {
                             for m in 0..10 {
-                                self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(5), in_progress.clone());
+                                set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(5), in_progress.clone());
                             }
 
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            self.set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
                         }
                     }
                 }
@@ -178,14 +178,6 @@ impl TerrainGenerator {
         let mut entry = in_progress.entry(coord).or_insert(UnfinishedChunkData {data: None, block_list: Vec::new(), started: true, finished: false});
         entry.data = chunk_data;
         entry.finished = true;
-    }
-
-    fn set_block_in_neighborhood(&self, coord: BlockCoord, block: Block, in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>) {
-        let chunk_coord = block_to_chunk_coord(&coord);
-        let local_coord = block_to_chunk_local_coord(&coord);
-
-        let mut entry = in_progress.entry(chunk_coord).or_insert(UnfinishedChunkData {data: None, block_list: Vec::new(), started: false, finished: false});
-        entry.block_list.push((local_coord, block));
     }
 
     /// Returns world seed
@@ -225,4 +217,12 @@ fn set_block(chunk_data: &mut ChunkData, coord: (usize, usize, usize), block: Bl
         *chunk_data = Some(Box::new(ndarray::Array3::default(CHUNK_SIZE)));
         chunk_data.as_deref_mut().unwrap()[(coord.0, coord.1, coord.2)] = block;
     }
+}
+
+fn set_block_in_neighborhood(coord: BlockCoord, block: Block, in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>) {
+    let chunk_coord = block_to_chunk_coord(&coord);
+    let local_coord = block_to_chunk_local_coord(&coord);
+
+    let mut entry = in_progress.entry(chunk_coord).or_insert(UnfinishedChunkData {data: None, block_list: Vec::new(), started: false, finished: false});
+    entry.block_list.push((local_coord, block));
 }

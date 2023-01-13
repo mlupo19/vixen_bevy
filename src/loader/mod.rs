@@ -150,7 +150,7 @@ struct RenderDistance(u32);
 
 impl Default for RenderDistance {
     fn default() -> Self {
-        Self(12)
+        Self(10)
     }
 }
 
@@ -164,9 +164,9 @@ impl RenderDistance {
     }
 }
 
-impl Into<u32> for RenderDistance {
-    fn into(self) -> u32 {
-        self.0
+impl From<RenderDistance> for u32 {
+    fn from(render_distance: RenderDistance) -> Self {
+        render_distance.0
     }
 }
 

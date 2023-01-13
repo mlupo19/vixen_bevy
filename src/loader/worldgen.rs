@@ -33,7 +33,7 @@ impl Worldgen {
         for scanner in scanner.iter() {
             for chunk_coord in scanner.into_iter() {
                 if !self.chunk_map.contains_key(&chunk_coord) && !self.needs_chunk_build.contains(&chunk_coord) {
-                    self.needs_chunk_build.insert(chunk_coord.clone());
+                    self.needs_chunk_build.insert(chunk_coord);
                     let generator = self.generator.clone();
                     let in_progress = self.in_progress.clone();
 
@@ -60,7 +60,7 @@ impl Worldgen {
     }
 
     pub fn build_chunk(&mut self, chunk_coord: ChunkCoord, chunk: Chunk) {
-        self.chunk_map.insert(chunk_coord.clone(), chunk);
+        self.chunk_map.insert(chunk_coord, chunk);
         self.needs_mesh_build.insert(chunk_coord);
         self.needs_chunk_build.remove(&chunk_coord);
     }
@@ -88,7 +88,7 @@ impl Worldgen {
         let pool = AsyncComputeTaskPool::get();
         let task = pool.scope(|scope| {
             self.needs_mesh_build.drain_filter(|coord| {
-                if let Some(chunk) = self.chunk_map.get(&coord) {
+                if let Some(chunk) = self.chunk_map.get(coord) {
                     if chunk.is_empty() {
                         return true;
                     }
@@ -96,9 +96,9 @@ impl Worldgen {
                         if let Some(neighbors) = get_neighbors_data(&self.chunk_map, *coord) {
                             let info = &texture_map_info.0;
                             let data = chunk.get_data().as_ref().unwrap();
-                            let coord = coord.clone();
+                            let coord = *coord;
                             scope.spawn(async move {
-                                let (positions, normals, uvs, indices) = Chunk::gen_mesh(&data, neighbors, info);
+                                let (positions, normals, uvs, indices) = Chunk::gen_mesh(data, neighbors, info);
                                 let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList);
                                 mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
                                 mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);

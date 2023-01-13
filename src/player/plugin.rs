@@ -199,5 +199,5 @@ fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Itera
                 move |z| ivec3(x,y,z)
             )
         )
-     ).filter(move |coord| !worldgen.get_block(coord).unwrap_or(Block::air()).is_air())
+     ).filter(move |coord| !worldgen.get_block(coord).unwrap_or_else(Block::air).is_air())
 }
