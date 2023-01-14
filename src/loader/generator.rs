@@ -226,3 +226,32 @@ fn set_block_in_neighborhood(coord: BlockCoord, block: Block, in_progress: Arc<D
     let mut entry = in_progress.entry(chunk_coord).or_insert(UnfinishedChunkData {data: None, block_list: Vec::new(), started: false, finished: false});
     entry.block_list.push((local_coord, block));
 }
+
+#[cfg(test)]
+mod tests {
+    use bevy::math::ivec3;
+
+    use super::*;
+
+    #[test]
+    fn test_chunk_generation_perf() {
+        let generator = TerrainGenerator::new(0);
+        let in_progress = Arc::new(DashMap::new());
+        
+        // Start timing
+        let start = std::time::Instant::now();
+        
+        for x in -5..=5 {
+            for y in -5..=5 {
+                for z in -5..=5 {
+                    let coord = ivec3(x, y, z);
+                    let _ = generator.generate_chunk(0, coord, in_progress.clone());
+                }
+            }
+        }
+
+        // End timing
+        let end = std::time::Instant::now();
+        println!("Time to generate chunks is: {:?}", end - start);
+    }
+}

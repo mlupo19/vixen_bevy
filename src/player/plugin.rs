@@ -37,6 +37,8 @@ fn setup(
         player: Player::default(),
         jumper: Jumper(false),
     });
+
+    commands.insert_resource(NearbyBlocks(Vec::new()));
 }
 
 fn mine(
@@ -125,13 +127,14 @@ fn player_move(
     worldgen: Res<Worldgen>,
     mut query: Query<(&mut Transform, &mut Movement, &mut Jumper), (With<Player>, With<Gravity>)>,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
+    mut nearby_blocks: ResMut<NearbyBlocks>,
 ) {
     if let Ok((mut transform, mut movement, mut jumper)) = query.get_single_mut() {
         movement.velocity -= Vec3::Y * 16. * time.delta_seconds();
         let velo = movement.velocity;
         movement.delta += velo * time.delta_seconds();
 
-        resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper);
+        resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper, &mut nearby_blocks.0);
 
         transform.translation += movement.delta;
         movement.delta = Vec3::ZERO;
@@ -139,9 +142,9 @@ fn player_move(
     }
 }
 
-fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper) {
+fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper, nearby_blocks: &mut Vec<IVec3>) {
     let extended = aabb.extend(&movement.delta);
-    let nearby_blocks: Vec<IVec3> = get_nearby_blocks(worldgen, &extended).collect();
+    nearby_blocks.extend(get_nearby_blocks(worldgen, &extended));
     
     let mut collisions_remain = true;
     while collisions_remain {
@@ -149,7 +152,7 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
 
         let (mut nearest_collision, mut nearest_collision_tangent) = (1.0, Vec3::ZERO);
 
-        for block in &nearby_blocks {
+        for block in nearby_blocks.iter() {
             let block_aabb = AABB::from_block(block);
             if let Some((collision_time, tangent)) = aabb.swept_collide(&block_aabb, movement) {
                 if collision_time < nearest_collision {
@@ -186,6 +189,8 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
         let remaining_time = 1.0 - nearest_collision;
         movement.delta += remaining_time * nearest_collision_tangent;
     }
+
+    nearby_blocks.clear();
 }
 
 fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Iterator<Item = IVec3> + 'a {
@@ -201,3 +206,6 @@ fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Itera
         )
      ).filter(move |coord| !worldgen.get_block(coord).unwrap_or_else(Block::air).is_air())
 }
+
+#[derive(Resource)]
+struct NearbyBlocks(Vec<IVec3>);
