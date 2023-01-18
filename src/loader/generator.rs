@@ -140,7 +140,7 @@ impl TerrainGenerator {
                         (i,j,k).hash(&mut hasher);
                         let mut rand = rand::rngs::StdRng::seed_from_u64(hasher.finish());
 
-                        // Generate tree (0.05% chance)
+                        // Generate tree (0.005% chance)
                         if rand.gen::<f64>() < 0.0005 {
                             for m in 0..5 {
                                 set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());

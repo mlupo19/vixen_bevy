@@ -3,6 +3,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 
+use crate::GameState;
 use crate::physics::Movement;
 
 use super::{Player, Jumper};
@@ -160,11 +161,10 @@ pub struct PlayerCameraPlugin;
 impl Plugin for PlayerCameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
-            .init_resource::<MovementSettings>()
-            .add_startup_system(initial_grab_cursor)
-            .add_system_to_stage(CoreStage::PreUpdate, player_input)
-            .add_system_to_stage(CoreStage::PreUpdate,player_look)
-            .add_system_to_stage(CoreStage::PreUpdate,cursor_grab)
-            .add_system(lock_cursor_position);
+            .init_resource::<MovementSettings>();
+        
+        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerCamSetup").with_system(initial_grab_cursor));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamPreUpdate").before("Update").with_system(player_input).with_system(player_look).with_system(cursor_grab));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamUpdate").with_system(lock_cursor_position));
     }
 }

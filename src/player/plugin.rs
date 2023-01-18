@@ -1,7 +1,7 @@
 use bevy::{prelude::*, math::{ivec3, vec3}};
 use bevy_atmosphere::prelude::AtmosphereCamera;
 
-use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}};
+use crate::{loader::{ChunkScanner, Worldgen, BlockCoord}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}, GameState};
 use crate::player::Block;
 
 use super::{Builder, Miner, Player, player_cam::{PlayerCameraPlugin, PlayerCam}, PlayerBundle, Jumper, Gravity};
@@ -11,21 +11,19 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(PlayerCameraPlugin);
-        app.add_system(mine);
-        app.add_system(build);
-        app.add_system(update_scanner);
-        app.add_system(player_move);
-        app.add_startup_system_to_stage(StartupStage::Startup, setup);
+
+        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerSetup").with_system(setup));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerUpdate").with_system(mine).with_system(build).with_system(update_scanner).with_system(player_move));
     }
 }
 
 fn setup(
     mut commands: Commands,
+    camera_query: Query<Entity, With<Camera3d>>,
 ) {
-    let cam = commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    }).insert(AtmosphereCamera::default()).id();
+    let mut cam = commands.entity(camera_query.single());
+    cam.insert(AtmosphereCamera::default());
+    let cam = cam.id();
 
     commands.spawn(PlayerBundle {
         transform: Transform::from_translation(Vec3::new(0.0,100.0,0.0)),

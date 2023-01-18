@@ -19,7 +19,9 @@ fn player_ui(
     player_query: Query<(&Transform, &Movement), With<Player>>,
     camera_query: Query<&Transform, With<Camera3d>>,
 ) {
-    let (transform, movement) = player_query.single();
+    let Ok((transform, movement)) = player_query.get_single() else {
+        return;
+    };
     egui::Window::new("Player Debug Info")
         .show(egui_ctx.ctx_mut(), |ui| {
             ui.label(format!("Position: {}", transform.translation));

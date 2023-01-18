@@ -17,7 +17,7 @@ pub use worldgen::Worldgen;
 pub use worldgen::ChunkMap;
 pub use chunk::*;
 
-use crate::player::{Player, Gravity};
+use crate::{player::{Player, Gravity}, GameState};
 
 use self::{generator::TerrainGenerator, texture::{TextureMapInfo, TextureMapHandle, load_texture_map_info}};
 
@@ -44,18 +44,12 @@ pub struct WorldLoaderPlugin;
 impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(AtmospherePlugin);
-        app.add_startup_system_to_stage(StartupStage::PreStartup, setup);
-        app.add_startup_system_to_stage(StartupStage::Startup, load_texture_map_info);
-        app.add_system_to_stage(CoreStage::PreUpdate, scan_chunks);
-        app.add_system_to_stage(CoreStage::PreUpdate, queue_mesh_rebuild);
-        app.add_system_to_stage(CoreStage::PreUpdate, build_chunks);
-        app.add_system_to_stage(CoreStage::PreUpdate, build_meshes);
-        app.add_stage_before(CoreStage::PreUpdate, "Unload", SystemStage::parallel());
-        app.add_system_to_stage("Unload", unload_chunks);
-        app.add_system_to_stage(CoreStage::PreUpdate, unload_meshes);
-        app.add_system(when_texture_loads);
-        app.add_system(start_gravity);
-        app.insert_resource(Worldgen::new(0));
+
+        app.add_system_set(SystemSet::on_enter(GameState::Game).label("Setup").with_system(setup));
+        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PostSetup").after("Setup").with_system(load_texture_map_info));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("Update").with_system(scan_chunks).with_system(queue_mesh_rebuild).with_system(build_chunks).with_system(build_meshes));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PreUpdate").before("Update").with_system(unload_chunks).with_system(unload_meshes));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PostUpdate").after("Update").with_system(when_texture_loads).with_system(start_gravity));
     }
 }
 
@@ -63,6 +57,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
+    commands.insert_resource(Worldgen::new(0));
     let texture_handle: Handle<Image> = asset_server.load("map.dds");
     commands.insert_resource(TextureMapHandle(texture_handle));
 
