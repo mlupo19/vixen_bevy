@@ -11,7 +11,6 @@ impl Plugin for DebugPlugin {
         app.add_plugin(FrameTimeDiagnosticsPlugin::default());
         app.add_system(player_ui);
         app.add_system(perf_stats);
-        // app.add_system(window_stats);
     }
 }
 
@@ -49,12 +48,5 @@ fn perf_stats(
         }
         ui.label(format!("Delta (ms): {}", time.delta_seconds() * 1000.));
     });
-    
-}
-
-fn window_stats(
-    mut windows: ResMut<Windows>,
-    keys: Res<Input<KeyCode>>,
-) {
     
 }

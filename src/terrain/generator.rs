@@ -1,7 +1,7 @@
 use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::Arc};
 
 use dashmap::DashMap;
-use noise::{Perlin, Seedable, NoiseFn};
+use noise::{Perlin, NoiseFn};
 use rand::{SeedableRng, Rng};
 
 use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord, ChunkCoord, BlockCoord};
@@ -16,7 +16,7 @@ pub struct TerrainGenerator {
 impl TerrainGenerator {
     /// Create a new Terrain Generator with a non-negative seed
     pub fn new(seed: u32) -> TerrainGenerator {
-        let noise = Perlin::new().set_seed(seed);
+        let noise = Perlin::new(seed);
         TerrainGenerator {
             seed,
             noise,

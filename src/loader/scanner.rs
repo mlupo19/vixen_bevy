@@ -1,5 +1,3 @@
-use std::vec::IntoIter;
-
 use bevy::{math::*, prelude::Component};
 
 use crate::util::{to_world_coord, to_chunk_coord};
