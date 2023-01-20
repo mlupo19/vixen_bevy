@@ -70,31 +70,31 @@ impl Faces {
 pub type ChunkData = Option<Box<ndarray::Array3<Block>>>;
 
 pub struct Chunk {
-    coord: ChunkCoord,
+    // coord: ChunkCoord,
     block_data: ChunkData,
     needs_update: bool,
 }
 
 impl Chunk {
-    pub fn empty(coord: ChunkCoord) -> Chunk {
+    pub fn empty(_coord: ChunkCoord) -> Chunk {
         Chunk {
-            coord,
+            // coord,
             block_data: None,
             needs_update: false,
         }
     }
 
-    pub fn new(coord: ChunkCoord) -> Chunk {
+    pub fn new(_coord: ChunkCoord) -> Chunk {
         Chunk {
-            coord,
+            // coord,
             block_data: None,
             needs_update: true,
         }
     }
 
-    pub fn from_data(coord: ChunkCoord, data: Box<Array3<Block>>) -> Chunk {
+    pub fn from_data(_coord: ChunkCoord, data: Box<Array3<Block>>) -> Chunk {
         Chunk {
-            coord,
+            // coord,
             block_data: Some(data),
             needs_update: true,
         }
@@ -428,9 +428,9 @@ impl Chunk {
         self.block_data.as_ref().map(|data| data[(i, j, k)].clone())
     }
 
-    pub fn get_coord(&self) -> ChunkCoord {
-        self.coord
-    }
+    // pub fn get_coord(&self) -> ChunkCoord {
+    //     self.coord
+    // }
 
     pub fn get_data_mut(&mut self) -> &mut Option<Box<ndarray::Array3<Block>>> {
         &mut self.block_data

@@ -4,9 +4,8 @@ use dashmap::DashMap;
 use noise::{Perlin, Seedable, NoiseFn};
 use rand::{SeedableRng, Rng};
 
-use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord};
-
-use super::{chunk::{Chunk, CHUNK_SIZE, Block, ChunkData}, ChunkCoord, BlockCoord, worldgen::UnfinishedChunkData};
+use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord, ChunkCoord, BlockCoord};
+use crate::loader::{Chunk, CHUNK_SIZE, Block, ChunkData, UnfinishedChunkData};
 
 #[derive(Clone)]
 pub struct TerrainGenerator {

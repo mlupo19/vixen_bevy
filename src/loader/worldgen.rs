@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use bevy::utils::HashMap;
+use bevy::{utils::HashMap, math::ivec3};
 use dashmap::DashMap;
-use crate::loader::*;
+use ndarray::Array3;
+use crate::{loader::*, terrain::TerrainGenerator, util::BlockCoord};
 
 pub type ChunkMap = HashMap<ChunkCoord, Chunk>;
 
@@ -28,9 +29,9 @@ impl Worldgen {
         }
     }
 
-    pub fn scan_chunks(&mut self, scanner: Query<&ChunkScanner>, mut commands: Commands) {
+    pub fn scan_chunks(&mut self, mut scanner: Query<&mut ChunkScanner>, mut commands: Commands) {
         let pool = AsyncComputeTaskPool::get();
-        for scanner in scanner.iter() {
+        for mut scanner in scanner.iter_mut() {
             for chunk_coord in scanner.into_iter() {
                 if !self.chunk_map.contains_key(&chunk_coord) && !self.needs_chunk_build.contains(&chunk_coord) {
                     self.needs_chunk_build.insert(chunk_coord);
@@ -213,32 +214,17 @@ impl Worldgen {
 }
 
 fn get_neighbors_data(chunk_map: &HashMap<ChunkCoord, Chunk>, coord: IVec3) -> Option<[Option<&Box<Array3<Block>>>;6]> {
-    Some([
-        match chunk_map.get(&(ivec3(1,0,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(-1,0,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,-1,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,1,0) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,0,1) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-        match chunk_map.get(&(ivec3(0,0,-1) + coord)) {
-            None => return None,
-            Some(chunk) => chunk.get_data().as_ref(),
-        },
-    ])
+    chunk_map.get(&(ivec3(1,0,0) + coord)).map(|chunk| chunk.get_data().as_ref()).and_then(|x| {
+        chunk_map.get(&(ivec3(-1,0,0) + coord)).map(|chunk| chunk.get_data().as_ref()).and_then(|y| {
+            chunk_map.get(&(ivec3(0,-1,0) + coord)).map(|chunk| chunk.get_data().as_ref()).and_then(|z| {
+                chunk_map.get(&(ivec3(0,1,0) + coord)).map(|chunk| chunk.get_data().as_ref()).and_then(|w| {
+                    chunk_map.get(&(ivec3(0,0,1) + coord)).map(|chunk| chunk.get_data().as_ref()).and_then(|u| {
+                        chunk_map.get(&(ivec3(0,0,-1) + coord)).map(|chunk| chunk.get_data().as_ref()).map(|v| [x,y,z,w,u,v])
+                    })
+                })
+            })
+        })
+    })
 }
 
 #[derive(Debug)]
