@@ -6,13 +6,13 @@ use super::ChunkCoord;
 
 #[derive(Component, Clone)]
 pub struct ChunkScanner {
-    range: u16,
+    range: u32,
     center: Vec3,
     list: Vec<ChunkCoord>,
 }
 
 impl ChunkScanner {
-    pub fn new(range: u16, center: ChunkCoord) -> Self {
+    pub fn new(range: u32, center: ChunkCoord) -> Self {
         Self { range, center: to_world_coord(&center), list: Vec::new() }
     }
 
@@ -22,7 +22,7 @@ impl ChunkScanner {
 
     pub fn should_unload_chunk(&self, pos: &ChunkCoord) -> bool {
         let center = to_chunk_coord(&self.center);
-        center.x.abs_diff(pos.x) > self.range.into() || center.y.abs_diff(pos.y) > self.range.into() || center.z.abs_diff(pos.z) > self.range.into()
+        center.x.abs_diff(pos.x) > self.range + 1 || center.y.abs_diff(pos.y) > self.range + 1 || center.z.abs_diff(pos.z) > self.range + 1
     }
 
     pub fn should_unload_unfinished_chunk(&self, pos: &ChunkCoord) -> bool {
@@ -41,7 +41,7 @@ impl ChunkScanner {
         self.center.floor().as_ivec3()
     }
 
-    pub fn range(&self) -> u16 {
+    pub fn range(&self) -> u32 {
         self.range
     }
 }

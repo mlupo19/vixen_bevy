@@ -129,6 +129,7 @@ impl Worldgen {
                     base_color_texture: Some(texture_map.0.clone()),
                     reflectance: 0.0,
                     metallic: 0.0,
+                    perceptual_roughness: 1.0,
                     ..default()
                 }),
                 transform: Transform::from_xyz(coord.x as f32 * CHUNK_SIZE.0 as f32, coord.y as f32 * CHUNK_SIZE.1 as f32, coord.z as f32 * CHUNK_SIZE.2 as f32),
@@ -144,11 +145,11 @@ impl Worldgen {
         scanner: Query<&ChunkScanner>,
     ) {
         self.chunk_map.drain_filter(|coord, _chunk| {
-            scanner.single().should_unload_chunk(coord)
+            scanner.into_iter().fold(true, |unload, scanner| unload && scanner.should_unload_chunk(coord))
         });
 
         self.in_progress.retain(|coord, _| {
-            !scanner.single().should_unload_unfinished_chunk(coord)
+            !scanner.into_iter().fold(false, |retain, scanner| scanner.should_unload_unfinished_chunk(coord) || retain)
         });
     }
 

@@ -29,7 +29,7 @@ fn setup(
     commands.insert_resource(TextureMapHandle(texture_handle));
 
     let render_distance = RenderDistance::default();
-    commands.spawn(ChunkScanner::new(1u16 + render_distance.get() as u16, ivec3(0,0,0)));
+    commands.spawn(ChunkScanner::new(render_distance.get() + 1, ivec3(0,0,0)));
     commands.insert_resource(render_distance);
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);

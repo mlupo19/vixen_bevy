@@ -58,7 +58,7 @@ impl Miner {
         self.coord = *coord;
         self.update();
         let block = worldgen.get_block(coord).unwrap_or_else(Block::air);
-        let health = block.health;
+        let health = block.durability;
         self.mining_progress += delta * speed;
         if health - self.mining_progress <= 0.0 && !block.is_air() {
             worldgen.set_block(coord, Block::air());

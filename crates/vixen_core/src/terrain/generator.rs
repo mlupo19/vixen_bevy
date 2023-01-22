@@ -2,9 +2,9 @@ use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::Arc}
 
 use dashmap::DashMap;
 use noise::{Perlin, NoiseFn};
-use rand::{SeedableRng, Rng};
+use rand::SeedableRng;
 
-use crate::util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord, ChunkCoord, BlockCoord};
+use crate::{util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord, ChunkCoord, BlockCoord}, loader::get_biome};
 use crate::loader::{Chunk, CHUNK_SIZE, Block, ChunkData, UnfinishedChunkData};
 
 #[derive(Clone)]
@@ -118,7 +118,7 @@ impl TerrainGenerator {
         for i in 0..CHUNK_SIZE.0 {
             for j in 0..CHUNK_SIZE.1 {
                 for k in 0..CHUNK_SIZE.2 {
-                    // let (world_x,world_y,world_z) = (x * CHUNK_SIZE.0 as i32 + i as i32, y * CHUNK_SIZE.1 as i32 + j as i32, z * CHUNK_SIZE.2 as i32 + k as i32);
+                    let block_coord = chunk_local_to_block_coord(&(i as i32, j as i32, k as i32), &coord);
                     if get_block(&chunk_data, (i, j, k)).unwrap_or(Block::air()) != Block::air() {
                         continue;
                     }
@@ -138,37 +138,43 @@ impl TerrainGenerator {
                         coord.hash(&mut hasher);
                         (i,j,k).hash(&mut hasher);
                         let mut rand = rand::rngs::StdRng::seed_from_u64(hasher.finish());
+                        get_biome(0).unwrap().generate_structures(&block_coord, in_progress.clone(), &mut rand);
+
+                        // Temporary: Remove when vixen_std is loaded dynamically
+                        // if rand.gen::<f64>() < OakTree.get_chance() {
+                        //     OakTree.generate(block_coord, in_progress.clone(), &mut rand);
+                        // }
 
                         // Generate tree (0.005% chance)
-                        if rand.gen::<f64>() < 0.0005 {
-                            for m in 0..5 {
-                                set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());
-                            }
-                            for dx in -1..=1 {
-                                for dy in 0..2 {
-                                    for dz in -1..=1 {
-                                        set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
-                                    }
-                                }
-                            }
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + 7, k as i32), &coord), Block::new(7),  in_progress.clone());
-                        }
+                        // if rand.gen::<f64>() < 0.0005 {
+                        //     for m in 0..5 {
+                        //         set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());
+                        //     }
+                        //     for dx in -1..=1 {
+                        //         for dy in 0..2 {
+                        //             for dz in -1..=1 {
+                        //                 set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
+                        //             }
+                        //         }
+                        //     }
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + 7, k as i32), &coord), Block::new(7),  in_progress.clone());
+                        // }
 
                         // Generate structure
-                        if rand.gen::<f64>() < 0.0002 {
-                            for m in 0..10 {
-                                set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(5), in_progress.clone());
-                            }
+                        // if rand.gen::<f64>() < 0.0002 {
+                        //     for m in 0..10 {
+                        //         set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     }
 
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                            set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                        }
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
+                        // }
                     }
                 }
             }
@@ -218,7 +224,7 @@ fn set_block(chunk_data: &mut ChunkData, coord: (usize, usize, usize), block: Bl
     }
 }
 
-fn set_block_in_neighborhood(coord: BlockCoord, block: Block, in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>) {
+pub fn set_block_in_neighborhood(coord: BlockCoord, block: Block, in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>) {
     let chunk_coord = block_to_chunk_coord(&coord);
     let local_coord = block_to_chunk_local_coord(&coord);
 

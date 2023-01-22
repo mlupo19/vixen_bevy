@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use bevy::{prelude::*, diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin}};
-use bevy_egui::EguiContext;
+use bevy_egui::{EguiContext, EguiPlugin};
 
 use crate::{player::Player, physics::Movement};
 
@@ -9,6 +9,7 @@ pub struct DebugPlugin;
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugin(FrameTimeDiagnosticsPlugin::default());
+        app.add_plugin(EguiPlugin);
         app.add_system(player_ui);
         app.add_system(perf_stats);
     }

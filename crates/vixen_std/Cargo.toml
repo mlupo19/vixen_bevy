@@ -1,0 +1,13 @@
+[package]
+name = "vixen_std"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vixen_core = { path = "../vixen_core" }
+
+rand = { workspace = true }
+dashmap = { workspace = true }
+ndarray = { workspace = true }
+bevy = { workspace = true }
+lazy_static = { workspace = true }

@@ -4,22 +4,22 @@ use ndarray::Array3;
 use super::{MeshData, ChunkCoord, block_data::get_durability};
 pub const CHUNK_SIZE: (usize, usize, usize) = (32, 32, 32);
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct Block {
     pub id: u16,
-    pub health: f32,
+    pub durability: f32,
 }
 
 impl Block {
     pub fn new(id: u16) -> Block {
         Block {
             id,
-            health: get_durability(id),
+            durability: get_durability(id),
         }
     }
 
     pub fn air() -> Block {
-        Block { id: 0, health: 0.0 }
+        Block { id: 0, durability: 0.0 }
     }
 
     pub fn is_air(&self) -> bool {
@@ -171,7 +171,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((0, j, k))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {
@@ -211,7 +211,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((CHUNK_SIZE.0 - 1, j, k))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {
@@ -251,7 +251,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((i, CHUNK_SIZE.1 - 1, k))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {
@@ -291,7 +291,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((i, 0, k))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {
@@ -331,7 +331,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((i, j, 0))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {
@@ -371,7 +371,7 @@ impl Chunk {
                                         .as_ref()
                                         .unwrap()
                                         .get((i, j, CHUNK_SIZE.2 - 1))
-                                        .unwrap_or(&Block { id: 0, health: 0.0 })
+                                        .unwrap_or(&Block { id: 0, durability: 0.0 })
                                         .id
                                         == 0
                                 {

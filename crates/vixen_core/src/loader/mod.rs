@@ -3,8 +3,8 @@ mod chunk;
 mod texture;
 mod worldgen;
 mod block_data;
-mod tool_data;
 mod plugin;
+mod registry;
 
 use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}};
 
@@ -14,6 +14,7 @@ pub use worldgen::ChunkMap;
 pub use worldgen::UnfinishedChunkData;
 pub use chunk::*;
 pub use plugin::*;
+pub use registry::*;
 
 use crate::util::ChunkCoord;
 

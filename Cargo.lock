@@ -2490,9 +2490,9 @@ dependencies = [
 
 [[package]]
 name = "num-complex"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ae39348c8bc5fbd7f40c727a9925f03517afd2ab27d46702108b6a7e5414c19"
+checksum = "02e0d21255c828d6f128a1e41534206671e8c3ea0c62f32291e808dc82cff17d"
 dependencies = [
  "num-traits 0.2.15",
 ]
@@ -3430,9 +3430,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.8"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "099b7128301d285f79ddd55b9a83d5e6b9e97c92e0ea0daebee7263e932de992"
+checksum = "d54675592c1dbefd78cbd98db9bacd89886e1ca50692a0692baefffdeb92dd58"
 
 [[package]]
 name = "unicode-ident"
@@ -3505,6 +3505,15 @@ name = "vixen_bevy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "vixen_core",
+ "vixen_std",
+]
+
+[[package]]
+name = "vixen_core"
+version = "0.1.0"
+dependencies = [
+ "bevy",
  "bevy_atmosphere",
  "bevy_egui",
  "bevy_flycam",
@@ -3519,6 +3528,18 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "vixen_std"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "dashmap",
+ "lazy_static",
+ "ndarray",
+ "rand 0.8.5",
+ "vixen_core",
 ]
 
 [[package]]
