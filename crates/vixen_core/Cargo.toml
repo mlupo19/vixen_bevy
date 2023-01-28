@@ -16,7 +16,7 @@ egui = { workspace = true }
 dashmap = { workspace = true }
 
 futures-lite = "1.12.0"
-noise = "0.8.2"
+noise = { git = "https://www.github.com/mlupo19/noise-rs", rev = "fde2d5fbeaac27c2d6ab392af65cad391ad8e48a" }
 bevy_flycam = "*"
 line_drawing = "1.0.0"
 bevy_mod_debugdump = "0.6.0"

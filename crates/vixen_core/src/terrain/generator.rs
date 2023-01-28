@@ -1,25 +1,30 @@
 use std::{hash::{Hash, Hasher}, collections::hash_map::DefaultHasher, sync::Arc};
 
 use dashmap::DashMap;
-use noise::{Perlin, NoiseFn};
+use noise::NoiseFn;
 use rand::SeedableRng;
 
 use crate::{util::{block_to_chunk_coord, chunk_local_to_block_coord, block_to_chunk_local_coord, ChunkCoord, BlockCoord}, loader::get_biome};
 use crate::loader::{Chunk, CHUNK_SIZE, Block, ChunkData, UnfinishedChunkData};
 
-#[derive(Clone)]
+use super::simple_noise::simple_noise;
+
+
+trait ClonableNoiseFn: NoiseFn<f64, 3> + Send + Clone {}
+
 pub struct TerrainGenerator {
     seed: u32,
-    noise: noise::Perlin,
+    noise: Box<dyn NoiseFn<f64, 3> + Send + Sync>,
 }
 
 impl TerrainGenerator {
     /// Create a new Terrain Generator with a non-negative seed
     pub fn new(seed: u32) -> TerrainGenerator {
-        let noise = Perlin::new(seed);
+        let noise = simple_noise(seed);
+        // let noise = Perlin::new(seed);
         TerrainGenerator {
             seed,
-            noise,
+            noise: Box::new(noise),
         }
     }
 
@@ -103,13 +108,8 @@ impl TerrainGenerator {
         for i in 0..CHUNK_SIZE.0 {
             for j in 0..CHUNK_SIZE.2 {
                 let freq = 0.05;
-                let octaves = 4;
-                let height = 120.0
-                    * self.acc_noise(
-                        octaves,
-                        (x * CHUNK_SIZE.0 as i32 + i as i32) as f32 / (CHUNK_SIZE.0 as f32 / freq),
-                        (z * CHUNK_SIZE.2 as i32 + j as i32) as f32 / (CHUNK_SIZE.2 as f32 / freq),
-                    );
+                let height = 75.0
+                 * self.noise.get([(x * CHUNK_SIZE.0 as i32 + i as i32) as f64 / (CHUNK_SIZE.0 as f32 / freq) as f64, (z * CHUNK_SIZE.2 as i32 + j as i32) as f64 / (CHUNK_SIZE.2 as f32 / freq) as f64, 0.0]); 
 
                 heights[(i, j)] = height as i32;
             }

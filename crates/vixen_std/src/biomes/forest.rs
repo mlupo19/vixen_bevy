@@ -14,7 +14,7 @@ impl Biome for ForestBiome {
     }
 
     fn generate_structures(&self, block_coord: &BlockCoord, in_progress: Arc<DashMap<ChunkCoord, UnfinishedChunkData>>, rng: &mut rand::rngs::StdRng) {
-        if rng.gen_range(0..100) < 5 {
+        if rng.gen::<f64>() < 0.005 {
             OakTree.generate(*block_coord, in_progress, rng);
         }
     }

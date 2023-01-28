@@ -49,6 +49,11 @@ fn setup(
         },
         ..default()
     });
+
+    commands.insert_resource(AmbientLight {
+        brightness: 0.5,
+        ..default()
+    });
 }
 
 fn scan_chunks(
