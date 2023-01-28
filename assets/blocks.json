@@ -72,6 +72,22 @@
             ],
             "durability": 0.3,
             "multiplier": {}
+        },
+        "8": {
+            "name": "mushroom_stem",
+            "loc": [
+                141, 141, 142, 142, 141, 141
+            ],
+            "durability": 1.0,
+            "multiplier": {}
+        },
+        "9": {
+            "name": "brown_mushroom",
+            "loc": [
+                126, 126, 126, 126, 126, 126
+            ],
+            "durability": 1.0,
+            "multiplier": {}
         }
     }
 }

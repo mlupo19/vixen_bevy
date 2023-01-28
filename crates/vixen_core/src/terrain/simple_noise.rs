@@ -1,7 +1,7 @@
 use noise::{NoiseFn, Fbm, Perlin, MultiFractal, Curve, Min, Clamp, Cache, ScaleBias};
 
-
-pub fn simple_noise(seed: u32) -> impl NoiseFn<f64, 3> {
+#[inline]
+pub fn base_continent(seed: u32) -> impl NoiseFn<f64, 3> {
     let base_continent_def_fb0 = Fbm::<Perlin>::new(seed)
         .set_frequency(CONTINENT_FREQUENCY)
         .set_persistence(0.5)
@@ -61,6 +61,10 @@ pub fn simple_noise(seed: u32) -> impl NoiseFn<f64, 3> {
     // the clamped-continent module.
     let base_continent_def = Cache::new(base_continent_def_cl);
     base_continent_def
+}
+
+pub fn simple_noise(seed: u32) -> impl NoiseFn<f64, 3> {
+    base_continent(seed)
 }
 
 /// Frequency of the planet's continents. Higher frequency produces

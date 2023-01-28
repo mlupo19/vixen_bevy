@@ -21,7 +21,6 @@ impl TerrainGenerator {
     /// Create a new Terrain Generator with a non-negative seed
     pub fn new(seed: u32) -> TerrainGenerator {
         let noise = simple_noise(seed);
-        // let noise = Perlin::new(seed);
         TerrainGenerator {
             seed,
             noise: Box::new(noise),
@@ -107,7 +106,7 @@ impl TerrainGenerator {
         let mut heights = ndarray::Array2::<i32>::zeros((CHUNK_SIZE.0, CHUNK_SIZE.2));
         for i in 0..CHUNK_SIZE.0 {
             for j in 0..CHUNK_SIZE.2 {
-                let freq = 0.05;
+                let freq = 0.01;
                 let height = 75.0
                  * self.noise.get([(x * CHUNK_SIZE.0 as i32 + i as i32) as f64 / (CHUNK_SIZE.0 as f32 / freq) as f64, (z * CHUNK_SIZE.2 as i32 + j as i32) as f64 / (CHUNK_SIZE.2 as f32 / freq) as f64, 0.0]); 
 
@@ -134,47 +133,9 @@ impl TerrainGenerator {
                         set_block(&mut chunk_data, (i, j, k), Block::new(id));
                     } else if heights[(i, k)] == (j as i32 + y * CHUNK_SIZE.1 as i32) {
                         let mut hasher = DefaultHasher::new();
-                        self.seed.hash(&mut hasher);
-                        coord.hash(&mut hasher);
-                        (i,j,k).hash(&mut hasher);
+                        (self.seed, coord, i, j, k).hash(&mut hasher);
                         let mut rand = rand::rngs::StdRng::seed_from_u64(hasher.finish());
                         get_biome(0).unwrap().generate_structures(&block_coord, in_progress.clone(), &mut rand);
-
-                        // Temporary: Remove when vixen_std is loaded dynamically
-                        // if rand.gen::<f64>() < OakTree.get_chance() {
-                        //     OakTree.generate(block_coord, in_progress.clone(), &mut rand);
-                        // }
-
-                        // Generate tree (0.005% chance)
-                        // if rand.gen::<f64>() < 0.0005 {
-                        //     for m in 0..5 {
-                        //         set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(6),  in_progress.clone());
-                        //     }
-                        //     for dx in -1..=1 {
-                        //         for dy in 0..2 {
-                        //             for dz in -1..=1 {
-                        //                 set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + dx, j as i32 + 5 + dy, k as i32 + dz), &coord), Block::new(7),  in_progress.clone());
-                        //             }
-                        //         }
-                        //     }
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + 7, k as i32), &coord), Block::new(7),  in_progress.clone());
-                        // }
-
-                        // Generate structure
-                        // if rand.gen::<f64>() < 0.0002 {
-                        //     for m in 0..10 {
-                        //         set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32, j as i32 + m, k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     }
-
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 - 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 1,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                        //     set_block_in_neighborhood(chunk_local_to_block_coord(&(i as i32 + 2,j as i32 + 1,k as i32), &coord), Block::new(5), in_progress.clone());
-                        // }
                     }
                 }
             }
@@ -188,22 +149,6 @@ impl TerrainGenerator {
     /// Returns world seed
     pub fn get_seed(&self) -> u32 {
         self.seed
-    }
-
-    fn acc_noise(&self, octaves: i32, x: f32, y: f32) -> f32 {
-        let mut x = x;
-        let mut y = y;
-        let mut result = 0.0;
-        let mut amp = 1.0;
-
-        for _ in 0..octaves {
-            result += self.noise.get([x as f64, y as f64, 0.0]) * amp;
-            x *= 2.0;
-            y *= 2.0;
-            amp /= 2.0;
-        }
-
-        result as f32
     }
 }
 
