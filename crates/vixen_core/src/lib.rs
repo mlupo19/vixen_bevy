@@ -1,15 +1,16 @@
 pub mod loader;
 pub mod player;
-pub mod menu;
+pub mod main_menu;
 pub mod game;
 pub mod terrain;
 pub mod storage;
 pub mod physics;
 pub mod debug;
 pub mod util;
+pub mod ui;
 
 pub use game::GamePlugin;
-pub use menu::MenuPlugin;
+pub use main_menu::MenuPlugin;
 pub use debug::DebugPlugin;
 pub use util::*;
 pub use loader::Block;

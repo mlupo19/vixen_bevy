@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::GameState;
+use crate::{GameState, ui::{spawn_button, MenuFont}, release_mouse};
 
 pub struct MenuPlugin;
 
@@ -23,12 +23,17 @@ struct MenuUIRoot;
 
 fn setup_menu(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    mut windows: ResMut<Windows>,
+    menu_font: Res<MenuFont>
 ) {
-    let start_button = spawn_button(&mut commands, &asset_server, "Start");
+    commands.insert_resource(ClearColor(Color::rgb(0.75, 0.75, 0.75)));
+
+    release_mouse(windows.get_primary_mut().unwrap());
+
+    let start_button = spawn_button(&mut commands, &menu_font, "Start");
     commands.entity(start_button).insert(MainMenuButton::StartButton);
 
-    let exit_button = spawn_button(&mut commands, &asset_server, "Exit");
+    let exit_button = spawn_button(&mut commands, &menu_font, "Exit");
     commands.entity(exit_button).insert(MainMenuButton::ExitButton);
 
     commands
@@ -78,37 +83,4 @@ fn teardown_menu(
     for root in root_query.iter() {
         commands.entity(root).despawn_recursive();
     }
-}
-
-fn spawn_button(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    text: &str,
-) -> Entity {
-    commands
-        .spawn(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                margin: UiRect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..Default::default()
-            },
-            background_color: BackgroundColor(Color::rgb(1.0, 0.1, 0.1)),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn(TextBundle {
-                text: Text::from_section(
-                    text,
-                    TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 40.0,
-                        color: Color::rgb(0.95, 0.95, 0.95),
-                    },
-                ),
-                ..default()
-            });
-        })
-        .id()
 }

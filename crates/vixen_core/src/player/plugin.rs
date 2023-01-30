@@ -1,4 +1,4 @@
-use bevy::{prelude::*, math::{ivec3, vec3}, utils::Instant};
+use bevy::{prelude::*, math::{ivec3, vec3}, utils::Instant, ecs::schedule::ShouldRun};
 use bevy_atmosphere::prelude::AtmosphereCamera;
 
 use crate::{loader::{ChunkScanner, Worldgen, Block}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}, GameState, util::BlockCoord};
@@ -11,8 +11,10 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(PlayerCameraPlugin);
 
+        app.insert_resource(Playing(true));
+
         app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerSetup").with_system(setup));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerUpdate").with_system(mine).with_system(build).with_system(update_scanner).with_system(player_move));
+        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerUpdate").with_run_criteria(is_playing).with_system(mine).with_system(build).with_system(update_scanner).with_system(player_move));
     }
 }
 
@@ -293,3 +295,10 @@ fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Itera
 
 #[derive(Resource)]
 struct NearbyBlocks(Vec<IVec3>);
+
+#[derive(Resource)]
+pub struct Playing(pub bool);
+
+fn is_playing(game_state: Res<State<GameState>>, playing: Res<Playing>) -> ShouldRun {
+    (playing.0 && game_state.current() == &GameState::Game).into()
+}

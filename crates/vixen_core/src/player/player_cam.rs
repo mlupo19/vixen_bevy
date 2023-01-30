@@ -3,7 +3,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 
-use crate::GameState;
+use crate::{GameState, toggle_grab_cursor};
 use crate::physics::Movement;
 
 use super::{Player, Jumper};
@@ -41,25 +41,6 @@ pub struct PlayerCam(pub Entity);
 impl PlayerCam {
     pub fn get(&self) -> Entity {
         self.0
-    }
-}
-
-/// Grabs/ungrabs mouse cursor
-fn toggle_grab_cursor(window: &mut Window) {
-    window.set_cursor_grab_mode(match window.cursor_grab_mode() {
-        CursorGrabMode::None => CursorGrabMode::Confined,
-        CursorGrabMode::Confined => CursorGrabMode::None,
-        CursorGrabMode::Locked => CursorGrabMode::None,
-    });
-    window.set_cursor_visibility(!window.cursor_visible());
-}
-
-/// Grabs the cursor when game first starts
-fn initial_grab_cursor(mut windows: ResMut<Windows>) {
-    if let Some(window) = windows.get_primary_mut() {
-        toggle_grab_cursor(window);
-    } else {
-        warn!("Primary window not found for `initial_grab_cursor`!");
     }
 }
 
@@ -163,7 +144,7 @@ impl Plugin for PlayerCameraPlugin {
         app.init_resource::<InputState>()
             .init_resource::<MovementSettings>();
         
-        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerCamSetup").with_system(initial_grab_cursor));
+        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerCamSetup"));
         app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamPreUpdate").before("Update").with_system(player_input).with_system(player_look).with_system(cursor_grab));
         app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamUpdate").with_system(lock_cursor_position));
     }
