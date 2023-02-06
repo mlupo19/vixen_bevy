@@ -11,3 +11,4 @@ dashmap = { workspace = true }
 ndarray = { workspace = true }
 bevy = { workspace = true }
 lazy_static = { workspace = true }
+noise = { workspace = true }

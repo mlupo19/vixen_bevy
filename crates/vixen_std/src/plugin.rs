@@ -1,7 +1,7 @@
 use bevy::prelude::Plugin;
-use vixen_core::loader::register_biome;
+use vixen_core::{loader::register_biome};
 
-use crate::biomes::ForestBiome;
+use crate::{biomes::ForestBiome, register_blocks};
 pub struct StandardPlugin;
 
 impl Plugin for StandardPlugin {
@@ -12,4 +12,6 @@ impl Plugin for StandardPlugin {
 
 fn register_everything() {
     register_biome(ForestBiome);
+
+    register_blocks();
 }

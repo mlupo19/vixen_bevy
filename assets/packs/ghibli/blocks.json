@@ -1,0 +1,82 @@
+{
+    "grass": {
+        "top": "grass",
+        "bottom": "dirt",
+        "left": "side_grass",
+        "right": "side_grass",
+        "front": "side_grass",
+        "back": "side_grass"
+    },
+    "dirt": {
+        "top": "dirt",
+        "bottom": "dirt",
+        "left": "dirt",
+        "right": "dirt",
+        "front": "dirt",
+        "back": "dirt"
+    },
+    "stone": {
+        "top": "stone",
+        "bottom": "stone",
+        "left": "stone",
+        "right": "stone",
+        "front": "stone",
+        "back": "stone"
+    },
+    "cobblestone": {
+        "top": "cobblestone",
+        "bottom": "cobblestone",
+        "left": "cobblestone",
+        "right": "cobblestone",
+        "front": "cobblestone",
+        "back": "cobblestone"
+    },
+    "oak_log": {
+        "top": "top_oak_log",
+        "bottom": "top_oak_log",
+        "left": "oak_log",
+        "right": "oak_log",
+        "front": "oak_log",
+        "back": "oak_log"
+    },
+    "birch_leaves": {
+        "top": "birch_leaves",
+        "bottom": "birch_leaves",
+        "left": "birch_leaves",
+        "right": "birch_leaves",
+        "front": "birch_leaves",
+        "back": "birch_leaves"
+    },
+    "oak_leaves": {
+        "top": "oak_leaves",
+        "bottom": "oak_leaves",
+        "left": "oak_leaves",
+        "right": "oak_leaves",
+        "front": "oak_leaves",
+        "back": "oak_leaves"
+    },
+    "mushroom_stem": {
+        "top": "top_oak_log",
+        "bottom": "top_oak_log",
+        "left": "oak_log",
+        "right": "oak_log",
+        "front": "oak_log",
+        "back": "oak_log"
+    },
+    "red_mushroom": {
+        "top": "red_mushroom_cap",
+        "bottom": "red_mushroom_cap",
+        "left": "red_mushroom_cap",
+        "right": "red_mushroom_cap",
+        "front": "red_mushroom_cap",
+        "back": "red_mushroom_cap"
+    },
+    "brown_mushroom": {
+        "top": "red_mushroom_cap",
+        "bottom": "red_mushroom_cap",
+        "left": "red_mushroom_cap",
+        "right": "red_mushroom_cap",
+        "front": "red_mushroom_cap",
+        "back": "red_mushroom_cap"
+    }
+}

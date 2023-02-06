@@ -4,7 +4,7 @@ use futures_lite::future;
 
 use crate::{player::{Player, Gravity}, GameState};
 
-use super::{Worldgen, texture::{TextureMapHandle, load_texture_map_info, TextureMapInfo}, ChunkScanner, ChunkBuildTask};
+use super::{Worldgen, texture::{TextureMapHandle, TextureMapInfo, create_texture_map}, ChunkScanner, ChunkBuildTask};
 
 pub struct WorldLoaderPlugin;
 
@@ -13,7 +13,6 @@ impl Plugin for WorldLoaderPlugin {
         app.add_plugin(AtmospherePlugin);
 
         app.add_system_set(SystemSet::on_enter(GameState::Game).label("Setup").with_system(setup));
-        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PostSetup").after("Setup").with_system(load_texture_map_info));
         app.add_system_set(SystemSet::on_update(GameState::Game).label("Update").with_system(scan_chunks).with_system(queue_mesh_rebuild).with_system(build_chunks).with_system(build_meshes));
         app.add_system_set(SystemSet::on_update(GameState::Game).label("PreUpdate").before("Update").with_system(unload_chunks).with_system(unload_meshes));
         app.add_system_set(SystemSet::on_update(GameState::Game).label("PostUpdate").after("Update").with_system(when_texture_loads).with_system(start_gravity));
@@ -22,11 +21,14 @@ impl Plugin for WorldLoaderPlugin {
 
 fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    mut textures: ResMut<Assets<Image>>,
 ) {
     commands.insert_resource(Worldgen::new(0));
-    let texture_handle: Handle<Image> = asset_server.load("map.dds");
+
+    let (texture_map, texture_map_info) = create_texture_map("assets/packs/ghibli/textures/");
+    let texture_handle: Handle<Image> = textures.add(texture_map);
     commands.insert_resource(TextureMapHandle(texture_handle));
+    commands.insert_resource(texture_map_info);
 
     let render_distance = RenderDistance::default();
     commands.spawn(ChunkScanner::new(render_distance.get() + 1, ivec3(0,0,0)));
@@ -40,6 +42,7 @@ fn setup(
         directional_light: DirectionalLight {
             illuminance: 50000.0,
             shadows_enabled: true,
+            color: Color::WHITE,
             ..default()
         },
         transform: Transform {

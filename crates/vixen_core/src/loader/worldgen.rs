@@ -5,6 +5,8 @@ use dashmap::DashMap;
 use ndarray::Array3;
 use crate::{loader::*, terrain::TerrainGenerator, util::BlockCoord};
 
+use super::texture::{TextureMapInfo, TextureMapHandle};
+
 pub type ChunkMap = HashMap<ChunkCoord, Chunk>;
 
 #[derive(Resource)]
@@ -230,7 +232,7 @@ fn get_neighbors_data(chunk_map: &HashMap<ChunkCoord, Chunk>, coord: IVec3) -> O
 
 #[derive(Debug)]
 pub struct UnfinishedChunkData {
-    pub data: Option<Box<ndarray::Array3<Block>>>,
+    pub data: ChunkData,
     pub block_list: Vec<((usize, usize, usize), Block)>,
     pub started: bool,
     pub finished: bool,

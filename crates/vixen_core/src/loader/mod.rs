@@ -2,7 +2,6 @@ mod scanner;
 mod chunk;
 mod texture;
 mod worldgen;
-mod block_data;
 mod plugin;
 mod registry;
 
@@ -17,8 +16,6 @@ pub use plugin::*;
 pub use registry::*;
 
 use crate::util::ChunkCoord;
-
-use self::texture::{TextureMapInfo, TextureMapHandle};
 
 #[derive(Component)]
 pub struct ChunkBuildTask(pub Task<(ChunkCoord, Chunk)>);

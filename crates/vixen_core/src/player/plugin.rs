@@ -1,7 +1,7 @@
 use bevy::{prelude::*, math::{ivec3, vec3}, utils::Instant, ecs::schedule::ShouldRun};
 use bevy_atmosphere::prelude::AtmosphereCamera;
 
-use crate::{loader::{ChunkScanner, Worldgen, Block}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}, GameState, util::BlockCoord};
+use crate::{loader::{ChunkScanner, Worldgen, Block, get_block}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}, GameState, util::BlockCoord};
 
 use super::player_cam::{PlayerCameraPlugin, PlayerCam};
 
@@ -60,7 +60,7 @@ impl Miner {
         self.coord = *coord;
         self.update();
         let block = worldgen.get_block(coord).unwrap_or_else(Block::air);
-        let health = block.durability;
+        let health = get_block(block.id).unwrap().get_durability();
         self.mining_progress += delta * speed;
         if health - self.mining_progress <= 0.0 && !block.is_air() {
             worldgen.set_block(coord, Block::air());

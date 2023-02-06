@@ -32,19 +32,23 @@ pub fn block_to_chunk_local_coord(block_coord: &IVec3) -> (usize, usize, usize) 
     )
 }
 
+#[inline]
 pub fn to_chunk_coord(world_coord: &Vec3) -> ChunkCoord {
     ivec3((world_coord.x / CHUNK_SIZE.0 as f32).floor() as i32, (world_coord.y / CHUNK_SIZE.1 as f32).floor() as i32, (world_coord.z / CHUNK_SIZE.2 as f32).floor() as i32)
 }
 
+#[inline]
 pub fn to_world_coord(chunk_coord: &ChunkCoord) -> Vec3 {
     vec3((chunk_coord.x * CHUNK_SIZE.0 as i32) as f32, (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32, (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32)
 }
 
+#[inline]
 pub fn grab_mouse(window: &mut Window) {
     window.set_cursor_grab_mode(CursorGrabMode::Confined);
     window.set_cursor_visibility(false);
 }
 
+#[inline]
 pub fn release_mouse(window: &mut Window) {
     window.set_cursor_grab_mode(CursorGrabMode::None);
     window.set_cursor_visibility(true);
