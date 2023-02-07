@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use vixen_core::{GamePlugin, MenuPlugin, GameState, DebugPlugin, ui::UiPlugin};
+use vixen_core::{ui::UiPlugin, DebugPlugin, GamePlugin, GameState, MenuPlugin};
 use vixen_std::StandardPlugin;
 
 fn main() {
@@ -12,5 +12,5 @@ fn main() {
         .add_state(GameState::MainMenu)
         .add_plugin(DebugPlugin)
         .insert_resource(Msaa { samples: 4 })
-        .run();    
+        .run();
 }

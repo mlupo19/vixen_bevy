@@ -1,9 +1,14 @@
 use bevy::prelude::*;
 
-use crate::{GameState, player::Playing, ui::{MenuFont, spawn_button}, release_mouse, grab_mouse};
+use crate::{
+    grab_mouse,
+    player::Playing,
+    release_mouse,
+    ui::{spawn_button, MenuFont},
+    GameState,
+};
 
 use super::PauseMenuState;
-
 
 pub struct PauseMenuPlugin;
 
@@ -21,17 +26,10 @@ enum PauseMenuButton {
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(
-            SystemSet::on_enter(PauseMenuState::Paused)
-                .with_system(show_pause_menu)
+            SystemSet::on_enter(PauseMenuState::Paused).with_system(show_pause_menu),
         )
-        .add_system_set(
-            SystemSet::on_update(PauseMenuState::Paused)
-                .with_system(update_pause_menu)
-        )
-        .add_system_set(
-            SystemSet::on_exit(PauseMenuState::Paused)
-                .with_system(teardown_pause_menu)
-        )
+        .add_system_set(SystemSet::on_update(PauseMenuState::Paused).with_system(update_pause_menu))
+        .add_system_set(SystemSet::on_exit(PauseMenuState::Paused).with_system(teardown_pause_menu))
         .add_state(PauseMenuState::Unpaused)
         .add_system(pause_on_escape);
     }
@@ -41,17 +39,21 @@ fn show_pause_menu(
     mut commands: Commands,
     mut window: ResMut<Windows>,
     mut playing: ResMut<Playing>,
-    menu_font: Res<MenuFont>
+    menu_font: Res<MenuFont>,
 ) {
     release_mouse(window.get_primary_mut().unwrap());
 
     playing.0 = false;
 
     let resume_button = spawn_button(&mut commands, &menu_font, "Resume");
-    commands.entity(resume_button).insert(PauseMenuButton::Resume);
+    commands
+        .entity(resume_button)
+        .insert(PauseMenuButton::Resume);
 
     let settings_button = spawn_button(&mut commands, &menu_font, "Settings");
-    commands.entity(settings_button).insert(PauseMenuButton::Settings);
+    commands
+        .entity(settings_button)
+        .insert(PauseMenuButton::Settings);
 
     let exit_button = spawn_button(&mut commands, &menu_font, "Exit");
     commands.entity(exit_button).insert(PauseMenuButton::Exit);

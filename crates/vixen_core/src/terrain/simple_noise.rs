@@ -1,4 +1,4 @@
-use noise::{NoiseFn, Fbm, Perlin, MultiFractal, Curve, Min, Clamp, Cache, ScaleBias};
+use noise::{Cache, Clamp, Curve, Fbm, Min, MultiFractal, NoiseFn, Perlin, ScaleBias};
 
 #[inline]
 pub fn base_continent(seed: u32) -> impl NoiseFn<f64, 3> {
@@ -8,7 +8,7 @@ pub fn base_continent(seed: u32) -> impl NoiseFn<f64, 3> {
         .set_lacunarity(CONTINENT_LACUNARITY)
         .set_octaves(6);
 
-        // 2: [Continent-with-ranges module]: Next, a curve module modifies the
+    // 2: [Continent-with-ranges module]: Next, a curve module modifies the
     // output value from the continent module so that very high values appear
     // near sea level. This defines the positions of the mountain ranges.
     let base_continent_def_cu = Curve::new(base_continent_def_fb0)

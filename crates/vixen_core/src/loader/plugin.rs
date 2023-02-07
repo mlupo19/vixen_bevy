@@ -1,10 +1,22 @@
-use bevy::{prelude::*, math::ivec3, render::{render_resource::FilterMode, texture::ImageSampler}, ecs::event::Events};use bevy::render::texture::ImageSampler::Descriptor;
+use bevy::render::texture::ImageSampler::Descriptor;
+use bevy::{
+    ecs::event::Events,
+    math::ivec3,
+    prelude::*,
+    render::{render_resource::FilterMode, texture::ImageSampler},
+};
 use bevy_atmosphere::prelude::AtmospherePlugin;
 use futures_lite::future;
 
-use crate::{player::{Player, Gravity}, GameState};
+use crate::{
+    player::{Gravity, Player},
+    GameState,
+};
 
-use super::{Worldgen, texture::{TextureMapHandle, TextureMapInfo, create_texture_map}, ChunkScanner, ChunkBuildTask};
+use super::{
+    texture::{create_texture_map, TextureMapHandle, TextureMapInfo},
+    ChunkBuildTask, ChunkScanner, Worldgen,
+};
 
 pub struct WorldLoaderPlugin;
 
@@ -12,17 +24,37 @@ impl Plugin for WorldLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(AtmospherePlugin);
 
-        app.add_system_set(SystemSet::on_enter(GameState::Game).label("Setup").with_system(setup));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("Update").with_system(scan_chunks).with_system(queue_mesh_rebuild).with_system(build_chunks).with_system(build_meshes));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PreUpdate").before("Update").with_system(unload_chunks).with_system(unload_meshes));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PostUpdate").after("Update").with_system(when_texture_loads).with_system(start_gravity));
+        app.add_system_set(
+            SystemSet::on_enter(GameState::Game)
+                .label("Setup")
+                .with_system(setup),
+        );
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("Update")
+                .with_system(scan_chunks)
+                .with_system(queue_mesh_rebuild)
+                .with_system(build_chunks)
+                .with_system(build_meshes),
+        );
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("PreUpdate")
+                .before("Update")
+                .with_system(unload_chunks)
+                .with_system(unload_meshes),
+        );
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("PostUpdate")
+                .after("Update")
+                .with_system(when_texture_loads)
+                .with_system(start_gravity),
+        );
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    mut textures: ResMut<Assets<Image>>,
-) {
+fn setup(mut commands: Commands, mut textures: ResMut<Assets<Image>>) {
     commands.insert_resource(Worldgen::new(0));
 
     let (texture_map, texture_map_info) = create_texture_map("assets/packs/ghibli/textures/");
@@ -31,12 +63,12 @@ fn setup(
     commands.insert_resource(texture_map_info);
 
     let render_distance = RenderDistance::default();
-    commands.spawn(ChunkScanner::new(render_distance.get() + 1, ivec3(0,0,0)));
+    commands.spawn(ChunkScanner::new(render_distance.get() + 1, ivec3(0, 0, 0)));
     commands.insert_resource(render_distance);
 
     let mut rot = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_3);
     rot = rot.mul_quat(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_6));
-    
+
     // light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
@@ -62,7 +94,7 @@ fn setup(
 fn scan_chunks(
     scanner: Query<&mut ChunkScanner>,
     mut worldgen: ResMut<Worldgen>,
-    commands: Commands
+    commands: Commands,
 ) {
     worldgen.scan_chunks(scanner, commands);
 }
@@ -78,13 +110,9 @@ fn build_chunks(
             commands.entity(entity).remove::<ChunkBuildTask>();
         }
     });
-    
 }
 
-fn queue_mesh_rebuild(
-    mut worldgen: ResMut<Worldgen>,
-    scanner: Query<&ChunkScanner>,
-) {
+fn queue_mesh_rebuild(mut worldgen: ResMut<Worldgen>, scanner: Query<&ChunkScanner>) {
     worldgen.queue_mesh_rebuild(scanner);
 }
 
@@ -97,13 +125,17 @@ fn build_meshes(
     texture_map_info: Res<TextureMapInfo>,
     mut worldgen: ResMut<Worldgen>,
 ) {
-    worldgen.build_meshes(scanner, meshes, materials, commands, texture_map, texture_map_info);
+    worldgen.build_meshes(
+        scanner,
+        meshes,
+        materials,
+        commands,
+        texture_map,
+        texture_map_info,
+    );
 }
 
-fn unload_chunks(
-    mut worldgen: ResMut<Worldgen>,
-    scanner: Query<&ChunkScanner>,
-) {
+fn unload_chunks(mut worldgen: ResMut<Worldgen>, scanner: Query<&ChunkScanner>) {
     worldgen.unload_chunks(scanner);
 }
 
@@ -140,21 +172,20 @@ impl From<RenderDistance> for u32 {
     }
 }
 
-fn when_texture_loads(
-    events: Res<Events<AssetEvent<Image>>>,
-    mut texture: ResMut<Assets<Image>>,
-) {
+fn when_texture_loads(events: Res<Events<AssetEvent<Image>>>, mut texture: ResMut<Assets<Image>>) {
     for event in events.get_reader().iter(&events) {
         match event {
             AssetEvent::Created { handle } => {
                 texture.get_mut(handle).unwrap().sampler_descriptor = ImageSampler::nearest();
-                if let Descriptor(ref mut desc) = texture.get_mut(handle).unwrap().sampler_descriptor {
+                if let Descriptor(ref mut desc) =
+                    texture.get_mut(handle).unwrap().sampler_descriptor
+                {
                     desc.min_filter = FilterMode::Linear;
                     desc.anisotropy_clamp = std::num::NonZeroU8::new(16);
                     desc.mipmap_filter = FilterMode::Linear;
                     desc.mag_filter = FilterMode::Nearest;
                 }
-            },
+            }
             AssetEvent::Modified { handle: _ } => (),
             AssetEvent::Removed { handle: _ } => (),
         }
@@ -164,7 +195,7 @@ fn when_texture_loads(
 fn start_gravity(
     query: Query<Entity, With<Player>>,
     worldgen: Res<Worldgen>,
-    mut commands: Commands
+    mut commands: Commands,
 ) {
     if worldgen.loaded_chunk_count() > 5000 {
         commands.entity(query.single()).insert(Gravity);

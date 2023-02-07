@@ -1,5 +1,5 @@
 use bevy::prelude::Plugin;
-use vixen_core::{loader::register_biome};
+use vixen_core::loader::register_biome;
 
 use crate::{biomes::ForestBiome, register_blocks};
 pub struct StandardPlugin;

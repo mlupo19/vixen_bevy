@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{player::PlayerPlugin, loader::WorldLoaderPlugin, grab_mouse, GameState};
+use crate::{grab_mouse, loader::WorldLoaderPlugin, player::PlayerPlugin, GameState};
 
 use super::pause_menu::PauseMenuPlugin;
 
@@ -8,8 +8,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(PlayerPlugin)
+        app.add_plugin(PlayerPlugin)
             .add_plugin(WorldLoaderPlugin)
             .add_plugin(PauseMenuPlugin)
             .add_startup_system(init_camera)

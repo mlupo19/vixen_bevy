@@ -1,9 +1,8 @@
 use std::sync::{atomic::AtomicU16, Arc};
 
-use dashmap::{DashMap, mapref::one::Ref};
+use dashmap::{mapref::one::Ref, DashMap};
 
-use crate::{terrain::Biome, game::BlockType};
-
+use crate::{game::BlockType, terrain::Biome};
 
 static BIOME_COUNT: AtomicU16 = AtomicU16::new(0);
 static BLOCK_COUNT: AtomicU16 = AtomicU16::new(0);

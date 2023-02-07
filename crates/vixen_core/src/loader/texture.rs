@@ -1,8 +1,15 @@
 use std::{fs::File, path::PathBuf};
 
-use bevy::{utils::HashMap, prelude::{Handle, Image, Resource}, render::{render_resource::{Extent3d, TextureDimension}, texture::dds_format_to_texture_format}};
+use bevy::{
+    prelude::{Handle, Image, Resource},
+    render::{
+        render_resource::{Extent3d, TextureDimension},
+        texture::dds_format_to_texture_format,
+    },
+    utils::HashMap,
+};
 use ddsfile::{Dds, Error};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::get_block_id;
 
@@ -10,21 +17,29 @@ use super::get_block_id;
 pub struct TextureMapHandle(pub Handle<Image>);
 
 #[derive(Resource)]
-pub struct TextureMapInfo(pub HashMap<u16, [[[f32;2];4];6]>);
+pub struct TextureMapInfo(pub HashMap<u16, [[[f32; 2]; 4]; 6]>);
 
-pub fn gen_texture_map_info(face_map: HashMap<String, u32>, height: u32, num: u32) -> TextureMapInfo {
+pub fn gen_texture_map_info(
+    face_map: HashMap<String, u32>,
+    height: u32,
+    num: u32,
+) -> TextureMapInfo {
     let block_data = load_block_data("ghibli");
 
     let height = height as f32;
     let mut map = HashMap::new();
     for (name, block_textures) in block_data.iter() {
-        let mut faces = [[[0.0;2];4];6];
+        let mut faces = [[[0.0; 2]; 4]; 6];
         for i in 0..6 {
             let loc = face_map[block_textures.get(i)];
             let top = loc as f32 / num as f32;
             let bottom = (loc + 1) as f32 / num as f32;
-            faces[i] = [[1.0, bottom - 0.5 / height], [1.0, top + 0.5 / height], [0.0, top + 0.5 / height], [0.0, bottom - 0.5 / height]];
-            
+            faces[i] = [
+                [1.0, bottom - 0.5 / height],
+                [1.0, top + 0.5 / height],
+                [0.0, top + 0.5 / height],
+                [0.0, bottom - 0.5 / height],
+            ];
         }
         let block_id = get_block_id(name).unwrap();
         map.insert(block_id, faces);
@@ -33,11 +48,11 @@ pub fn gen_texture_map_info(face_map: HashMap<String, u32>, height: u32, num: u3
     TextureMapInfo(map)
 }
 
-
 pub fn create_texture_map(path: &str) -> (Image, TextureMapInfo) {
     let files_in_dir = dds_files_in_dir(path);
     let mut images = Vec::new();
-    let (mut width, mut height, mut num_layers, mut mipmap_levels, mut texture_format, mut depth) = (None, None, None, None, None, None);
+    let (mut width, mut height, mut num_layers, mut mipmap_levels, mut texture_format, mut depth) =
+        (None, None, None, None, None, None);
     let mut face_map = HashMap::new();
     let mut id = 0;
     for file in files_in_dir {
@@ -53,7 +68,10 @@ pub fn create_texture_map(path: &str) -> (Image, TextureMapInfo) {
             assert_eq!(width, Some(dds.get_width()));
             assert_eq!(height, Some(dds.get_height()));
             assert_eq!(num_layers, Some(dds.get_num_array_layers()));
-            assert_eq!(texture_format, Some(dds_format_to_texture_format(&dds, true).unwrap()));
+            assert_eq!(
+                texture_format,
+                Some(dds_format_to_texture_format(&dds, true).unwrap())
+            );
             assert_eq!(mipmap_levels, Some(dds.get_num_mipmap_levels()));
             assert_eq!(depth, Some(dds.get_depth()));
         }
@@ -85,13 +103,17 @@ pub fn create_texture_map(path: &str) -> (Image, TextureMapInfo) {
     for mipmap_level in 0..mipmap_levels {
         for image in images.iter() {
             let image_data = image.get_data(0).unwrap();
-            let (start, end) = get_mipmap_size(image.get_main_texture_size().unwrap(), mipmap_level);
+            let (start, end) =
+                get_mipmap_size(image.get_main_texture_size().unwrap(), mipmap_level);
             data.extend_from_slice(&image_data[start..end]);
         }
     }
     image.data = data;
-    
-    (image, gen_texture_map_info(face_map, height.unwrap(), images.len() as u32))
+
+    (
+        image,
+        gen_texture_map_info(face_map, height.unwrap(), images.len() as u32),
+    )
 }
 
 fn dds_files_in_dir(path: &str) -> Vec<PathBuf> {
@@ -145,7 +167,7 @@ pub fn load_block_data(data_pack: &str) -> HashMap<String, BlockTextures> {
     match serde_json::from_reader(blocks) {
         Ok(v) => v,
         Err(e) => {
-            panic!("Error parsing blocks.json: {}",e);
+            panic!("Error parsing blocks.json: {}", e);
         }
     }
 }

@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use crate::{GameState, ui::{spawn_button, MenuFont}, release_mouse};
+use crate::{
+    release_mouse,
+    ui::{spawn_button, MenuFont},
+    GameState,
+};
 
 pub struct MenuPlugin;
 
@@ -21,20 +25,20 @@ enum MainMenuButton {
 #[derive(Component)]
 struct MenuUIRoot;
 
-fn setup_menu(
-    mut commands: Commands,
-    mut windows: ResMut<Windows>,
-    menu_font: Res<MenuFont>
-) {
+fn setup_menu(mut commands: Commands, mut windows: ResMut<Windows>, menu_font: Res<MenuFont>) {
     commands.insert_resource(ClearColor(Color::rgb(0.75, 0.75, 0.75)));
 
     release_mouse(windows.get_primary_mut().unwrap());
 
     let start_button = spawn_button(&mut commands, &menu_font, "Start");
-    commands.entity(start_button).insert(MainMenuButton::StartButton);
+    commands
+        .entity(start_button)
+        .insert(MainMenuButton::StartButton);
 
     let exit_button = spawn_button(&mut commands, &menu_font, "Exit");
-    commands.entity(exit_button).insert(MainMenuButton::ExitButton);
+    commands
+        .entity(exit_button)
+        .insert(MainMenuButton::ExitButton);
 
     commands
         .spawn(NodeBundle {
@@ -53,33 +57,25 @@ fn setup_menu(
 }
 
 fn update_menu(
-    interaction_query: Query<
-        (&Interaction, &MainMenuButton),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interaction_query: Query<(&Interaction, &MainMenuButton), (Changed<Interaction>, With<Button>)>,
     mut game_state: ResMut<State<GameState>>,
     mut windows: ResMut<Windows>,
 ) {
     for (interaction, button) in interaction_query.iter() {
         match interaction {
-            Interaction::Clicked => {
-                match button {
-                    MainMenuButton::StartButton => {
-                        game_state.set(GameState::Game).unwrap();
-                    }
-                    MainMenuButton::ExitButton => {
-                        windows.get_primary_mut().unwrap().close();
-                    }
+            Interaction::Clicked => match button {
+                MainMenuButton::StartButton => {
+                    game_state.set(GameState::Game).unwrap();
                 }
-            }
+                MainMenuButton::ExitButton => {
+                    windows.get_primary_mut().unwrap().close();
+                }
+            },
             _ => {}
         }
     }
 }
-fn teardown_menu(
-    mut commands: Commands,
-    root_query: Query<Entity, With<MenuUIRoot>>,
-) {
+fn teardown_menu(mut commands: Commands, root_query: Query<Entity, With<MenuUIRoot>>) {
     for root in root_query.iter() {
         commands.entity(root).despawn_recursive();
     }

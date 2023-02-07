@@ -1,5 +1,9 @@
-use bevy::{math::{ivec3, vec3}, prelude::{IVec3, Vec3}, window::{Window, CursorGrabMode}};
 use crate::loader::CHUNK_SIZE;
+use bevy::{
+    math::{ivec3, vec3},
+    prelude::{IVec3, Vec3},
+    window::{CursorGrabMode, Window},
+};
 
 pub type ChunkCoord = IVec3;
 pub type BlockCoord = IVec3;
@@ -14,7 +18,10 @@ pub fn block_to_chunk_coord(block_coord: &IVec3) -> ChunkCoord {
 }
 
 #[inline]
-pub fn chunk_local_to_block_coord(local_chunk_coord: &(i32, i32, i32), chunk_coord: &IVec3) -> IVec3 {
+pub fn chunk_local_to_block_coord(
+    local_chunk_coord: &(i32, i32, i32),
+    chunk_coord: &IVec3,
+) -> IVec3 {
     ivec3(
         local_chunk_coord.0 + chunk_coord.x * CHUNK_SIZE.0 as i32,
         local_chunk_coord.1 + chunk_coord.y * CHUNK_SIZE.1 as i32,
@@ -34,12 +41,20 @@ pub fn block_to_chunk_local_coord(block_coord: &IVec3) -> (usize, usize, usize) 
 
 #[inline]
 pub fn to_chunk_coord(world_coord: &Vec3) -> ChunkCoord {
-    ivec3((world_coord.x / CHUNK_SIZE.0 as f32).floor() as i32, (world_coord.y / CHUNK_SIZE.1 as f32).floor() as i32, (world_coord.z / CHUNK_SIZE.2 as f32).floor() as i32)
+    ivec3(
+        (world_coord.x / CHUNK_SIZE.0 as f32).floor() as i32,
+        (world_coord.y / CHUNK_SIZE.1 as f32).floor() as i32,
+        (world_coord.z / CHUNK_SIZE.2 as f32).floor() as i32,
+    )
 }
 
 #[inline]
 pub fn to_world_coord(chunk_coord: &ChunkCoord) -> Vec3 {
-    vec3((chunk_coord.x * CHUNK_SIZE.0 as i32) as f32, (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32, (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32)
+    vec3(
+        (chunk_coord.x * CHUNK_SIZE.0 as i32) as f32,
+        (chunk_coord.y * CHUNK_SIZE.1 as i32) as f32,
+        (chunk_coord.z * CHUNK_SIZE.2 as i32) as f32,
+    )
 }
 
 #[inline]

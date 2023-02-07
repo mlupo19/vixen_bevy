@@ -1,19 +1,23 @@
-mod scanner;
 mod chunk;
-mod texture;
-mod worldgen;
 mod plugin;
 mod registry;
+mod scanner;
+mod texture;
+mod worldgen;
 
-use bevy::{prelude::*, utils::HashSet, tasks::{AsyncComputeTaskPool, Task}};
+use bevy::{
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task},
+    utils::HashSet,
+};
 
-pub use scanner::ChunkScanner;
-pub use worldgen::Worldgen;
-pub use worldgen::ChunkMap;
-pub use worldgen::UnfinishedChunkData;
 pub use chunk::*;
 pub use plugin::*;
 pub use registry::*;
+pub use scanner::ChunkScanner;
+pub use worldgen::ChunkMap;
+pub use worldgen::UnfinishedChunkData;
+pub use worldgen::Worldgen;
 
 use crate::util::ChunkCoord;
 
@@ -29,5 +33,5 @@ struct NeedsMeshBuild(pub HashSet<ChunkCoord>);
 #[derive(Component)]
 struct NeedsChunkBuild(pub HashSet<ChunkCoord>);
 
-type MeshData = (Vec<[f32;3]>, Vec<[f32;3]>, Vec<[f32;2]>, Vec<u32>);
+type MeshData = (Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>);
 type MeshDataWithCoord = (ChunkCoord, MeshData);

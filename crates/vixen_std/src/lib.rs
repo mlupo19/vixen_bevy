@@ -1,8 +1,11 @@
-use vixen_core::{game::BlockType, loader::{Block, register_block}};
+use vixen_core::{
+    game::BlockType,
+    loader::{register_block, Block},
+};
 
 pub mod biomes;
-pub mod structures;
 mod plugin;
+pub mod structures;
 
 pub use plugin::*;
 
@@ -144,9 +147,7 @@ impl BlockType for StandardBlocks {
 
 impl From<StandardBlocks> for Block {
     fn from(block: StandardBlocks) -> Self {
-        Block {
-            id: block.get_id(),
-        }
+        Block { id: block.get_id() }
     }
 }
 

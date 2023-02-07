@@ -4,12 +4,7 @@ pub use plugin::*;
 
 use bevy::prelude::*;
 
-
-pub fn spawn_button(
-    commands: &mut Commands,
-    menu_font: &MenuFont,
-    text: &str,
-) -> Entity {
+pub fn spawn_button(commands: &mut Commands, menu_font: &MenuFont, text: &str) -> Entity {
     commands
         .spawn(ButtonBundle {
             style: Style {

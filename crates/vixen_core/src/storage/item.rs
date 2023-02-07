@@ -1,11 +1,11 @@
 use bevy::utils::HashMap;
 
 pub struct Item {
-    id: usize
+    id: usize,
 }
 
 fn init_item_map() -> HashMap<u16, ItemInfo> {
-   HashMap::new()
+    HashMap::new()
 }
 
 pub struct ItemInfo;

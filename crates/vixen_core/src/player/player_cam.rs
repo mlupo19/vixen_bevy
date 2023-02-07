@@ -3,10 +3,10 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 
-use crate::{GameState, toggle_grab_cursor};
 use crate::physics::Movement;
+use crate::{toggle_grab_cursor, GameState};
 
-use super::{Player, Jumper};
+use super::{Jumper, Player};
 
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Default, Resource)]
@@ -50,7 +50,10 @@ fn player_input(
     time: Res<Time>,
     windows: Res<Windows>,
     settings: Res<MovementSettings>,
-    mut player_query: Query<(&mut Transform, &mut PlayerCam, &mut Movement, &mut Jumper), With<Player>>,
+    mut player_query: Query<
+        (&mut Transform, &mut PlayerCam, &mut Movement, &mut Jumper),
+        With<Player>,
+    >,
     mut camera_query: Query<&mut Transform, (With<Camera3d>, Without<Player>)>,
 ) {
     if let Some(window) = windows.get_primary() {
@@ -58,7 +61,7 @@ fn player_input(
             let cam_transform = camera_query.get_mut(cam.get()).unwrap();
             let mut delta = Vec3::ZERO;
             transform.rotation = cam_transform.rotation;
-            
+
             let local_z = transform.local_z();
             let forward = -Vec3::new(local_z.x, 0., local_z.z).normalize();
             let right = Vec3::new(local_z.z, 0., -local_z.x).normalize();
@@ -70,10 +73,12 @@ fn player_input(
                         KeyCode::S => delta += -forward,
                         KeyCode::A => delta += -right,
                         KeyCode::D => delta += right,
-                        KeyCode::Space => if jumper.0 {
-                            movement.velocity += Vec3::Y * settings.jump_power;
-                            jumper.0 = false;
-                        },
+                        KeyCode::Space => {
+                            if jumper.0 {
+                                movement.velocity += Vec3::Y * settings.jump_power;
+                                jumper.0 = false;
+                            }
+                        }
                         _ => (),
                     }
                 }
@@ -130,11 +135,11 @@ fn cursor_grab(keys: Res<Input<KeyCode>>, mut windows: ResMut<Windows>) {
 }
 
 fn lock_cursor_position(mut windows: ResMut<Windows>) {
-	if let Some(window) = windows.get_primary_mut() {
+    if let Some(window) = windows.get_primary_mut() {
         if let CursorGrabMode::Confined = window.cursor_grab_mode() {
-		    window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
+            window.set_cursor_position(Vec2::new(window.width() / 2., window.height() / 2.));
         }
-	}
+    }
 }
 
 /// Contains everything needed to add first-person camera behavior to your game
@@ -143,9 +148,20 @@ impl Plugin for PlayerCameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
             .init_resource::<MovementSettings>();
-        
+
         app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerCamSetup"));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamPreUpdate").before("Update").with_system(player_input).with_system(player_look).with_system(cursor_grab));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerCamUpdate").with_system(lock_cursor_position));
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("PlayerCamPreUpdate")
+                .before("Update")
+                .with_system(player_input)
+                .with_system(player_look)
+                .with_system(cursor_grab),
+        );
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("PlayerCamUpdate")
+                .with_system(lock_cursor_position),
+        );
     }
 }

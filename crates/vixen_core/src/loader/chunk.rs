@@ -1,7 +1,7 @@
 use bevy::utils::HashMap;
 use ndarray::Array3;
 
-use super::{MeshData, ChunkCoord};
+use super::{ChunkCoord, MeshData};
 pub const CHUNK_SIZE: (usize, usize, usize) = (32, 32, 32);
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
@@ -11,9 +11,7 @@ pub struct Block {
 
 impl Block {
     pub fn new(id: u16) -> Block {
-        Block {
-            id,
-        }
+        Block { id }
     }
 
     pub fn air() -> Block {
@@ -127,9 +125,19 @@ impl Chunk {
             //     | (face.normal.2 as u32) << 20
             //     | face_tex_coords[c][0] << 21
             //     | face_tex_coords[c][1] << 22);
-            vertex_data.0.push([point_in_chunk_space.0 as f32, point_in_chunk_space.1 as f32, point_in_chunk_space.2 as f32]);
-            vertex_data.1.push([face.normal.0 as f32, face.normal.1 as f32, face.normal.2 as f32]);
-            vertex_data.2.push([face_tex_coords[c][0], face_tex_coords[c][1]]);
+            vertex_data.0.push([
+                point_in_chunk_space.0 as f32,
+                point_in_chunk_space.1 as f32,
+                point_in_chunk_space.2 as f32,
+            ]);
+            vertex_data.1.push([
+                face.normal.0 as f32,
+                face.normal.1 as f32,
+                face.normal.2 as f32,
+            ]);
+            vertex_data
+                .2
+                .push([face_tex_coords[c][0], face_tex_coords[c][1]]);
         }
 
         for ind in FACE_INDICES.iter() {
@@ -139,11 +147,15 @@ impl Chunk {
 
     pub fn gen_mesh(
         block_data: &Array3<Block>,
-        neighbors: [Option<&Box<Array3<Block>>>;6],
+        neighbors: [Option<&Box<Array3<Block>>>; 6],
         texture_map_info: &HashMap<u16, [[[f32; 2]; 4]; 6]>,
     ) -> MeshData {
         let presize = CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2;
-        let mut vertex_data = VertexDataList(Vec::with_capacity(presize), Vec::with_capacity(presize), Vec::with_capacity(presize));
+        let mut vertex_data = VertexDataList(
+            Vec::with_capacity(presize),
+            Vec::with_capacity(presize),
+            Vec::with_capacity(presize),
+        );
         let mut indices = Vec::with_capacity(CHUNK_SIZE.0 * CHUNK_SIZE.1 * CHUNK_SIZE.2 * 3);
 
         for i in 0..CHUNK_SIZE.0 {
@@ -154,13 +166,7 @@ impl Chunk {
                         // Check adjacent blocks
 
                         // Add right face to mesh
-                        if i == CHUNK_SIZE.0 - 1
-                            || block_data
-                                .get((i + 1, j, k))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if i == CHUNK_SIZE.0 - 1 || block_data.get((i + 1, j, k)).unwrap().id == 0 {
                             // Check neighbor chunk if block is on edge
                             if i == CHUNK_SIZE.0 - 1 {
                                 let neighbor = &neighbors[0];
@@ -195,13 +201,7 @@ impl Chunk {
                         }
 
                         // Add left face to mesh
-                        if i == 0
-                            || block_data
-                                .get((i - 1, j, k))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if i == 0 || block_data.get((i - 1, j, k)).unwrap().id == 0 {
                             if i == 0 {
                                 let neighbor = &neighbors[1];
                                 if neighbor.is_none()
@@ -235,13 +235,7 @@ impl Chunk {
                         }
 
                         // Add bottom face to mesh
-                        if j == 0
-                            || block_data
-                                .get((i, j - 1, k))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if j == 0 || block_data.get((i, j - 1, k)).unwrap().id == 0 {
                             if j == 0 {
                                 let neighbor = &neighbors[2];
                                 if neighbor.is_none()
@@ -275,13 +269,7 @@ impl Chunk {
                         }
 
                         // Add top face to mesh
-                        if j == CHUNK_SIZE.1 - 1
-                            || block_data
-                                .get((i, j + 1, k))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if j == CHUNK_SIZE.1 - 1 || block_data.get((i, j + 1, k)).unwrap().id == 0 {
                             if j == CHUNK_SIZE.1 - 1 {
                                 let neighbor = &neighbors[3];
                                 if neighbor.is_none()
@@ -315,13 +303,7 @@ impl Chunk {
                         }
 
                         // Add front face to mesh
-                        if k == CHUNK_SIZE.2 - 1
-                            || block_data
-                                .get((i, j, k + 1))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if k == CHUNK_SIZE.2 - 1 || block_data.get((i, j, k + 1)).unwrap().id == 0 {
                             if k == CHUNK_SIZE.2 - 1 {
                                 let neighbor = &neighbors[4];
                                 if neighbor.is_none()
@@ -355,13 +337,7 @@ impl Chunk {
                         }
 
                         // Add back face to mesh
-                        if k == 0
-                            || block_data
-                                .get((i, j, k - 1))
-                                .unwrap()
-                                .id
-                                == 0
-                        {
+                        if k == 0 || block_data.get((i, j, k - 1)).unwrap().id == 0 {
                             if k == 0 {
                                 let neighbor = &neighbors[5];
                                 if neighbor.is_none()
@@ -408,7 +384,7 @@ impl Chunk {
             None => {
                 self.block_data = Some(Box::new(ndarray::Array3::default(CHUNK_SIZE)));
                 needs_update = true;
-            },
+            }
             Some(_) => {
                 if self.block_data.as_ref().unwrap()[[i, j, k]] != block {
                     self.needs_update = true;
@@ -455,4 +431,4 @@ impl Chunk {
     }
 }
 
-struct VertexDataList(Vec<[f32;3]>, Vec<[f32;3]>, Vec<[f32;2]>);
+struct VertexDataList(Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>);

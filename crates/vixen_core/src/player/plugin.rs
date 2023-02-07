@@ -1,9 +1,20 @@
-use bevy::{prelude::*, math::{ivec3, vec3}, utils::Instant, ecs::schedule::ShouldRun};
+use bevy::{
+    ecs::schedule::ShouldRun,
+    math::{ivec3, vec3},
+    prelude::*,
+    utils::Instant,
+};
 use bevy_atmosphere::prelude::AtmosphereCamera;
 
-use crate::{loader::{ChunkScanner, Worldgen, Block, get_block}, storage::StorageContainer, physics::{Movement, AABB, SweptCollider}, GameState, util::BlockCoord};
+use crate::{
+    loader::{get_block, Block, ChunkScanner, Worldgen},
+    physics::{Movement, SweptCollider, AABB},
+    storage::StorageContainer,
+    util::BlockCoord,
+    GameState,
+};
 
-use super::player_cam::{PlayerCameraPlugin, PlayerCam};
+use super::player_cam::{PlayerCam, PlayerCameraPlugin};
 
 pub struct PlayerPlugin;
 
@@ -13,13 +24,24 @@ impl Plugin for PlayerPlugin {
 
         app.insert_resource(Playing(true));
 
-        app.add_system_set(SystemSet::on_enter(GameState::Game).label("PlayerSetup").with_system(setup));
-        app.add_system_set(SystemSet::on_update(GameState::Game).label("PlayerUpdate").with_run_criteria(is_playing).with_system(mine).with_system(build).with_system(update_scanner).with_system(player_move));
+        app.add_system_set(
+            SystemSet::on_enter(GameState::Game)
+                .label("PlayerSetup")
+                .with_system(setup),
+        );
+        app.add_system_set(
+            SystemSet::on_update(GameState::Game)
+                .label("PlayerUpdate")
+                .with_run_criteria(is_playing)
+                .with_system(mine)
+                .with_system(build)
+                .with_system(update_scanner)
+                .with_system(player_move),
+        );
     }
 }
 
-
-pub const PLAYER_SIZE: (f32,f32,f32) = (0.6,1.8,0.6);
+pub const PLAYER_SIZE: (f32, f32, f32) = (0.6, 1.8, 0.6);
 
 #[derive(Component, Default)]
 pub struct Player;
@@ -45,7 +67,11 @@ struct Miner {
 
 impl Default for Miner {
     fn default() -> Self {
-        Self { mining_progress: Default::default(), coord: Default::default(), last_time: Instant::now() }
+        Self {
+            mining_progress: Default::default(),
+            coord: Default::default(),
+            last_time: Instant::now(),
+        }
     }
 }
 
@@ -84,7 +110,7 @@ impl Miner {
 impl Builder {
     pub fn can_build(&self) -> bool {
         let now = Instant::now();
-        (now - self.0).as_millis() > 225 
+        (now - self.0).as_millis() > 225
     }
 
     pub fn update(&mut self) {
@@ -104,17 +130,13 @@ pub struct Jumper(pub bool);
 #[derive(Component)]
 pub struct Gravity;
 
-
-fn setup(
-    mut commands: Commands,
-    camera_query: Query<Entity, With<Camera3d>>,
-) {
+fn setup(mut commands: Commands, camera_query: Query<Entity, With<Camera3d>>) {
     let mut cam = commands.entity(camera_query.single());
     cam.insert(AtmosphereCamera::default());
     let cam = cam.id();
 
     commands.spawn(PlayerBundle {
-        transform: Transform::from_translation(Vec3::new(0.0,100.0,0.0)),
+        transform: Transform::from_translation(Vec3::new(0.0, 100.0, 0.0)),
         movement: Movement::default(),
         miner: Miner::default(),
         builder: Builder::default(),
@@ -136,7 +158,7 @@ fn mine(
 ) {
     let mut miner = query.single_mut();
     let transform = camera_transform.single();
-    
+
     // Check if player is trying to mine
     if mouse_input.pressed(MouseButton::Left) {
         let range = 4.0;
@@ -149,20 +171,38 @@ fn build(
     mouse_input: Res<Input<MouseButton>>,
     camera_transform: Query<&Transform, With<Camera3d>>,
     mut worldgen: ResMut<Worldgen>,
-    mut query: Query<&mut Builder>
+    mut query: Query<&mut Builder>,
 ) {
     let transform = camera_transform.single();
     let mut builder = query.single_mut();
 
     // Check if player is trying to build
-    if mouse_input.just_pressed(MouseButton::Right) || (mouse_input.pressed(MouseButton::Right) && builder.can_build()) {
+    if mouse_input.just_pressed(MouseButton::Right)
+        || (mouse_input.pressed(MouseButton::Right) && builder.can_build())
+    {
         builder.update();
         let range = 5.0;
         let translation = &transform.translation;
-        let coord = cast_ray_in_front(vec3(translation.x, translation.y, translation.z), range, transform.forward(), &worldgen);
+        let coord = cast_ray_in_front(
+            vec3(translation.x, translation.y, translation.z),
+            range,
+            transform.forward(),
+            &worldgen,
+        );
         if let Some(coord) = coord {
-            if coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32, translation.z.floor() as i32)
-            && coord != ivec3(translation.x.floor() as i32, translation.y.floor() as i32 - 1, translation.z.floor() as i32) {
+            if coord
+                != ivec3(
+                    translation.x.floor() as i32,
+                    translation.y.floor() as i32,
+                    translation.z.floor() as i32,
+                )
+                && coord
+                    != ivec3(
+                        translation.x.floor() as i32,
+                        translation.y.floor() as i32 - 1,
+                        translation.z.floor() as i32,
+                    )
+            {
                 worldgen.set_block(&coord, Block::new(1));
             }
         }
@@ -171,31 +211,60 @@ fn build(
 
 fn cast_ray(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> BlockCoord {
     let displacement = forward * rho;
-    let end_point = (start_point[0] + displacement.x, start_point[1] + displacement.y, start_point[2] + displacement.z);
+    let end_point = (
+        start_point[0] + displacement.x,
+        start_point[1] + displacement.y,
+        start_point[2] + displacement.z,
+    );
 
-    for (x, y, z) in line_drawing::WalkVoxels::new((start_point[0], start_point[1], start_point[2]), end_point, &line_drawing::VoxelOrigin::Corner) {
-        if let Some(block) = loader.get_block(&ivec3(x,y,z)) {
+    for (x, y, z) in line_drawing::WalkVoxels::new(
+        (start_point[0], start_point[1], start_point[2]),
+        end_point,
+        &line_drawing::VoxelOrigin::Corner,
+    ) {
+        if let Some(block) = loader.get_block(&ivec3(x, y, z)) {
             if !block.is_air() {
-                return ivec3(x,y,z);
+                return ivec3(x, y, z);
             }
         }
     }
-    ivec3(start_point[0].floor() as i32, start_point[1].floor() as i32, start_point[2].floor() as i32)
+    ivec3(
+        start_point[0].floor() as i32,
+        start_point[1].floor() as i32,
+        start_point[2].floor() as i32,
+    )
 }
 
 /// Casts a ray and returns block coordinate of the air block in front of the block the ray hit, and None otherwise
-fn cast_ray_in_front(start_point: Vec3, rho: f32, forward: Vec3, loader: &Worldgen) -> Option<BlockCoord> {
+fn cast_ray_in_front(
+    start_point: Vec3,
+    rho: f32,
+    forward: Vec3,
+    loader: &Worldgen,
+) -> Option<BlockCoord> {
     let displacement = forward * rho;
-    let end_point = (start_point[0] + displacement.x, start_point[1] + displacement.y, start_point[2] + displacement.z);
-    let mut last = ivec3(start_point[0].floor() as i32, start_point[1].floor() as i32, start_point[2].floor() as i32);
-    for (x, y, z) in line_drawing::WalkVoxels::new((start_point[0], start_point[1], start_point[2]), end_point, &line_drawing::VoxelOrigin::Corner) {
+    let end_point = (
+        start_point[0] + displacement.x,
+        start_point[1] + displacement.y,
+        start_point[2] + displacement.z,
+    );
+    let mut last = ivec3(
+        start_point[0].floor() as i32,
+        start_point[1].floor() as i32,
+        start_point[2].floor() as i32,
+    );
+    for (x, y, z) in line_drawing::WalkVoxels::new(
+        (start_point[0], start_point[1], start_point[2]),
+        end_point,
+        &line_drawing::VoxelOrigin::Corner,
+    ) {
         let coord = ivec3(x, y, z);
         if let Some(block) = loader.get_block(&coord) {
             if block.id != 0 {
                 return Some(last);
             }
         }
-        last = ivec3(x,y,z);
+        last = ivec3(x, y, z);
     }
     None
 }
@@ -205,7 +274,10 @@ fn update_scanner(
     mut scanner: Query<&mut ChunkScanner>,
 ) {
     let transform = camera_transform.single();
-    scanner.get_single_mut().unwrap().update(transform.translation);
+    scanner
+        .get_single_mut()
+        .unwrap()
+        .update(transform.translation);
 }
 
 fn player_move(
@@ -220,18 +292,30 @@ fn player_move(
         let velo = movement.velocity;
         movement.delta += velo * time.delta_seconds();
 
-        resolve_collision(worldgen, &mut movement, AABB::from_player(transform.translation), &mut jumper, &mut nearby_blocks.0);
+        resolve_collision(
+            worldgen,
+            &mut movement,
+            AABB::from_player(transform.translation),
+            &mut jumper,
+            &mut nearby_blocks.0,
+        );
 
         transform.translation += movement.delta;
         movement.delta = Vec3::ZERO;
-        camera_query.single_mut().translation = transform.translation + Vec3::new(0.0,1.5,0.0);
+        camera_query.single_mut().translation = transform.translation + Vec3::new(0.0, 1.5, 0.0);
     }
 }
 
-fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AABB, jumper: &mut Jumper, nearby_blocks: &mut Vec<IVec3>) {
+fn resolve_collision(
+    worldgen: Res<Worldgen>,
+    movement: &mut Movement,
+    aabb: AABB,
+    jumper: &mut Jumper,
+    nearby_blocks: &mut Vec<IVec3>,
+) {
     let extended = aabb.extend(&movement.delta);
     nearby_blocks.extend(get_nearby_blocks(worldgen, &extended));
-    
+
     let mut collisions_remain = true;
     while collisions_remain {
         collisions_remain = false;
@@ -248,7 +332,7 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
                 collisions_remain = true;
             }
         }
-        
+
         // Reset velocity when hit block
         if collisions_remain {
             if nearest_collision_tangent.x == 0.0 {
@@ -270,7 +354,6 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
         // Stop movement when hit block
         movement.delta *= nearest_collision;
 
-
         // Slide against wall
         let remaining_time = 1.0 - nearest_collision;
         movement.delta += remaining_time * nearest_collision_tangent;
@@ -279,18 +362,24 @@ fn resolve_collision(worldgen: Res<Worldgen>, movement: &mut Movement, aabb: AAB
     nearby_blocks.clear();
 }
 
-fn get_nearby_blocks<'a>(worldgen: Res<'a, Worldgen>, aabb: &AABB) -> impl Iterator<Item = IVec3> + 'a {
+fn get_nearby_blocks<'a>(
+    worldgen: Res<'a, Worldgen>,
+    aabb: &AABB,
+) -> impl Iterator<Item = IVec3> + 'a {
     let (x_min, x_max) = (aabb.min.x.floor() as i32 - 1, aabb.max.x.ceil() as i32 + 1);
     let (y_min, y_max) = (aabb.min.y.floor() as i32 - 1, aabb.max.y.ceil() as i32 + 1);
     let (z_min, z_max) = (aabb.min.z.floor() as i32 - 1, aabb.max.z.ceil() as i32 + 1);
 
-    (x_min..x_max).flat_map(
-        move |x| (y_min..y_max).flat_map(
-            move |y| (z_min..z_max).map(
-                move |z| ivec3(x,y,z)
-            )
-        )
-     ).filter(move |coord| !worldgen.get_block(coord).unwrap_or_else(Block::air).is_air())
+    (x_min..x_max)
+        .flat_map(move |x| {
+            (y_min..y_max).flat_map(move |y| (z_min..z_max).map(move |z| ivec3(x, y, z)))
+        })
+        .filter(move |coord| {
+            !worldgen
+                .get_block(coord)
+                .unwrap_or_else(Block::air)
+                .is_air()
+        })
 }
 
 #[derive(Resource)]
