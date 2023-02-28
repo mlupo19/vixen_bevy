@@ -4,8 +4,8 @@ use dashmap::{mapref::one::Ref, DashMap};
 
 use crate::{game::BlockType, terrain::Biome};
 
-static BIOME_COUNT: AtomicU16 = AtomicU16::new(0);
-static BLOCK_COUNT: AtomicU16 = AtomicU16::new(0);
+pub static BIOME_COUNT: AtomicU16 = AtomicU16::new(0);
+pub static BLOCK_COUNT: AtomicU16 = AtomicU16::new(0);
 
 lazy_static::lazy_static! {
 

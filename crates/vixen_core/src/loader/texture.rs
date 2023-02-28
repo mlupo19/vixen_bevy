@@ -21,24 +21,25 @@ pub struct TextureMapInfo(pub HashMap<u16, [[[f32; 2]; 4]; 6]>);
 
 pub fn gen_texture_map_info(
     face_map: HashMap<String, u32>,
-    height: u32,
+    data_pack: &str,
     num: u32,
 ) -> TextureMapInfo {
-    let block_data = load_block_data("ghibli");
+    let block_data = load_block_data(data_pack);
 
-    let height = height as f32;
+    let num = num as f32;
     let mut map = HashMap::new();
     for (name, block_textures) in block_data.iter() {
         let mut faces = [[[0.0; 2]; 4]; 6];
         for i in 0..6 {
-            let loc = face_map[block_textures.get(i)];
-            let top = loc as f32 / num as f32;
-            let bottom = (loc + 1) as f32 / num as f32;
+            let Some(loc) = face_map.get(block_textures.get(i)) else { panic!("Invalid texture name: {}", block_textures.get(i))};
+            let top = *loc as f32 / num;
+            let bottom = (loc + 1) as f32 / num;
+            
             faces[i] = [
-                [1.0, bottom - 0.5 / height],
-                [1.0, top + 0.5 / height],
-                [0.0, top + 0.5 / height],
-                [0.0, bottom - 0.5 / height],
+                [1.0, bottom],//- 0.5 / height],
+                [1.0, top],// + 0.5 / height],
+                [0.0, top],// + 0.5 / height],
+                [0.0, bottom]// - 0.5 / height],
             ];
         }
         let block_id = get_block_id(name).unwrap();
@@ -48,8 +49,9 @@ pub fn gen_texture_map_info(
     TextureMapInfo(map)
 }
 
-pub fn create_texture_map(path: &str) -> (Image, TextureMapInfo) {
-    let files_in_dir = dds_files_in_dir(path);
+pub fn create_texture_map(data_pack: &str) -> (Image, TextureMapInfo) {
+    let path = format!("assets/packs/{}/textures/", data_pack);
+    let files_in_dir = dds_files_in_dir(&path);
     let mut images = Vec::new();
     let (mut width, mut height, mut num_layers, mut mipmap_levels, mut texture_format, mut depth) =
         (None, None, None, None, None, None);
@@ -112,7 +114,7 @@ pub fn create_texture_map(path: &str) -> (Image, TextureMapInfo) {
 
     (
         image,
-        gen_texture_map_info(face_map, height.unwrap(), images.len() as u32),
+        gen_texture_map_info(face_map, data_pack, images.len() as u32),
     )
 }
 

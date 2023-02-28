@@ -35,3 +35,6 @@ struct NeedsChunkBuild(pub HashSet<ChunkCoord>);
 
 type MeshData = (Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>);
 type MeshDataWithCoord = (ChunkCoord, MeshData);
+
+#[derive(Resource)]
+pub struct DataPack(pub String);

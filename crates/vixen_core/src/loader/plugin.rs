@@ -13,6 +13,7 @@ use crate::{
     GameState,
 };
 
+use super::DataPack;
 use super::{
     texture::{create_texture_map, TextureMapHandle, TextureMapInfo},
     ChunkBuildTask, ChunkScanner, Worldgen,
@@ -54,10 +55,10 @@ impl Plugin for WorldLoaderPlugin {
     }
 }
 
-fn setup(mut commands: Commands, mut textures: ResMut<Assets<Image>>) {
+fn setup(mut commands: Commands, mut textures: ResMut<Assets<Image>>, data_pack: Res<DataPack>) {
     commands.insert_resource(Worldgen::new(0));
 
-    let (texture_map, texture_map_info) = create_texture_map("assets/packs/ghibli/textures/");
+    let (texture_map, texture_map_info) = create_texture_map(&data_pack.0);
     let texture_handle: Handle<Image> = textures.add(texture_map);
     commands.insert_resource(TextureMapHandle(texture_handle));
     commands.insert_resource(texture_map_info);

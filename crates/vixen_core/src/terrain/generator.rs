@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use noise::NoiseFn;
+use noise::{NoiseFn, Perlin};
 
-use crate::loader::{Block, Chunk, ChunkData, UnfinishedChunkData, CHUNK_SIZE};
+use crate::loader::{Block, Chunk, ChunkData, UnfinishedChunkData, CHUNK_SIZE, BIOMES};
 use crate::{
     loader::get_biome,
     util::{block_to_chunk_coord, block_to_chunk_local_coord, BlockCoord, ChunkCoord},
@@ -14,15 +14,18 @@ use super::simple_noise::simple_noise;
 pub struct TerrainGenerator {
     seed: u32,
     noise: Box<dyn NoiseFn<f64, 3> + Send + Sync>,
+    biome_noise: Box<dyn NoiseFn<f64, 3> + Send + Sync>,
 }
 
 impl TerrainGenerator {
     /// Create a new Terrain Generator with a non-negative seed
     pub fn new(seed: u32) -> TerrainGenerator {
         let noise = simple_noise(seed);
+        let biome_noise = Perlin::new(seed);
         TerrainGenerator {
             seed,
             noise: Box::new(noise),
+            biome_noise: Box::new(biome_noise),
         }
     }
 
@@ -123,7 +126,8 @@ impl TerrainGenerator {
         }
         drop(entry);
 
-        get_biome(0).unwrap().generate_chunk(
+        let biome: u16 = pick_biome(coord, &self.biome_noise);
+        get_biome(biome).unwrap().generate_chunk(
             coord,
             &mut chunk_data,
             in_progress.clone(),
@@ -183,31 +187,12 @@ pub fn set_block_in_neighborhood(
     entry.block_list.push((local_coord, block));
 }
 
-#[cfg(test)]
-mod tests {
-    use bevy::math::ivec3;
+fn pick_biome(coord: ChunkCoord, biome_noise: &impl NoiseFn<f64, 3>) -> u16 {
+    let x = coord.x as f64;
+    let y = coord.y as f64;
+    let z = coord.z as f64;
 
-    use super::*;
-
-    #[test]
-    fn test_chunk_generation_perf() {
-        let generator = TerrainGenerator::new(0);
-        let in_progress = Arc::new(DashMap::new());
-
-        // Start timing
-        let start = std::time::Instant::now();
-
-        for x in -5..=5 {
-            for y in -5..=5 {
-                for z in -5..=5 {
-                    let coord = ivec3(x, y, z);
-                    let _ = generator.generate_chunk(0, coord, in_progress.clone());
-                }
-            }
-        }
-
-        // End timing
-        let end = std::time::Instant::now();
-        println!("Time to generate chunks is: {:?}", end - start);
-    }
+    let noise = biome_noise.get([x, y, z]) * BIOMES.len() as f64;
+    
+    noise.floor() as u16
 }

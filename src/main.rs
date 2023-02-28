@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use vixen_core::{ui::UiPlugin, DebugPlugin, GamePlugin, GameState, MenuPlugin};
+use vixen_core::{ui::UiPlugin, DebugPlugin, GamePlugin, GameState, MenuPlugin, loader::DataPack};
 use vixen_std::StandardPlugin;
 
 fn main() {
@@ -12,5 +12,6 @@ fn main() {
         .add_state(GameState::MainMenu)
         .add_plugin(DebugPlugin)
         .insert_resource(Msaa { samples: 4 })
+        .insert_resource(DataPack("ghibli".to_string()))
         .run();
 }

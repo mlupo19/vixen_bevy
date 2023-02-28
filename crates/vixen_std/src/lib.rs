@@ -78,16 +78,16 @@ impl BlockType for StandardBlocks {
     fn get_durability(&self) -> f32 {
         match self {
             StandardBlocks::Air => 0.,
-            StandardBlocks::Stone => 1.,
-            StandardBlocks::Grass => 1.,
-            StandardBlocks::Dirt => 1.,
-            StandardBlocks::Cobblestone => 1.,
+            StandardBlocks::Stone => 16.,
+            StandardBlocks::Grass => 3.5,
+            StandardBlocks::Dirt => 3.,
+            StandardBlocks::Cobblestone => 20.,
             StandardBlocks::OakPlank => 1.,
-            StandardBlocks::OakLog => 1.,
-            StandardBlocks::OakLeaves => 1.,
-            StandardBlocks::MushroomStem => 1.,
-            StandardBlocks::BrownMushroom => 1.,
-            StandardBlocks::RedMushroom => 1.,
+            StandardBlocks::OakLog => 10.,
+            StandardBlocks::OakLeaves => 1.0,
+            StandardBlocks::MushroomStem => 2.,
+            StandardBlocks::BrownMushroom => 2.,
+            StandardBlocks::RedMushroom => 2.,
             StandardBlocks::GoldOre => 1.,
             StandardBlocks::IronOre => 1.,
             StandardBlocks::CoalOre => 1.,
@@ -171,4 +171,48 @@ fn register_blocks() {
     let _ = StandardBlocks::Gravel.get_id();
     let _ = StandardBlocks::BirchLeaves.get_id();
     let _ = StandardBlocks::BirchPlank.get_id();
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use bevy::math::ivec3;
+    use dashmap::DashMap;
+    use rayon::{iter::IntoParallelIterator, prelude::ParallelIterator};
+
+    use vixen_core::{loader::register_biome, terrain::TerrainGenerator};
+
+    use crate::biomes::ForestBiome;
+
+    #[test]
+    fn test_chunk_generation_perf() {
+        // Register biome
+        register_biome(ForestBiome);
+
+        let generator = TerrainGenerator::new(0);
+        let in_progress = Arc::new(DashMap::new());
+
+        // Start timing
+        let start = std::time::Instant::now();
+
+        (-10..=10)
+            .into_par_iter()
+            .for_each(|x| {
+                (-10..=10)
+                    .into_par_iter()
+                    .for_each(|y| {
+                        (-10..=10)
+                            .into_par_iter()
+                            .for_each(|z| {
+                                let coord = ivec3(x, y, z);
+                                let _ = generator.generate_chunk(0, coord, in_progress.clone());
+                            });
+                    });
+            });
+
+        // End timing
+        let end = std::time::Instant::now();
+        println!("Time to generate chunks is: {:?}", end - start);
+    }
 }

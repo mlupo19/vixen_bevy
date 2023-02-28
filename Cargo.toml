@@ -25,6 +25,7 @@ bevy_egui = "0.19.0"
 egui = "0.20.1"
 dashmap = { version = "5.4.0", features = ["rayon"] }
 noise = { git = "https://www.github.com/mlupo19/noise-rs", rev = "fde2d5fbeaac27c2d6ab392af65cad391ad8e48a" }
+rayon = "1.6.1"
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
@@ -39,6 +40,12 @@ opt-level = 1
 
 [profile.dev.package."vixen_std"]
 opt-level = 1
+
+[profile.test]
+opt-level = 3
+
+[profile.test.package."*"]
+opt-level = 3
 
 # Enable LTO for release builds
 [profile.release]
